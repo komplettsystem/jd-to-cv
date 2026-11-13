@@ -1,5 +1,7 @@
 # Reverse Apply
 
+> **Status:** published for reference. Issues and pull requests are closed; this is a personal project shared as-is, not a maintained one.
+
 A job posting applies to a candidate. Paste a job posting and get a report on how well a CV matches it, with the CV line
 behind every verdict. Ask follow-up questions in a chat that stays inside the posting, the CV and the report, and get a
 draft cover letter. People can also check their own CV, which is deleted when they are done or after 30 days. The owner gets
