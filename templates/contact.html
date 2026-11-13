@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Contact{% endblock %}
+{% block description %}Where to find {{ owner_name }}.{% endblock %}
+{% block body %}
+<div class="page-head"><h1>Contact</h1><p class="lede">The best way to reach {{ owner_name }} is through the profiles below. Phone number and private email are not published on this site.</p></div>
+<section class="form" aria-labelledby="where-title">
+  <div class="ribbon"><h2 id="where-title">Where to find {{ owner_name }}</h2></div>
+  <div class="fields">
+    {% if linkedin %}<div class="field f-6"><span class="field-label">LinkedIn</span><p class="field-value"><a href="{{ linkedin }}" rel="noopener">{{ linkedin|replace('https://www.', '')|replace('https://', '') }}</a></p><p class="field-sub">Send a connection request or a message.</p></div>{% endif %}
+    {% if github %}<div class="field f-6"><span class="field-label">GitHub</span><p class="field-value"><a href="{{ github }}" rel="noopener">{{ github|replace('https://', '') }}</a></p><p class="field-sub">The public projects behind this site and the CV.</p></div>{% endif %}
+    {% if contact_email %}<div class="field"><span class="field-label">About this site</span><p class="field-value"><a href="mailto:{{ contact_email }}">{{ contact_email }}</a></p><p class="field-sub">For questions about the site or to have something deleted.</p></div>{% endif %}
+    {% if not (linkedin or github or contact_email) %}<div class="field"><p class="empty"><strong>No contact details are set up yet.</strong></p></div>{% endif %}
+  </div>
+</section>
+{% endblock %}

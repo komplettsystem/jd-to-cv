@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Your terms{% endblock %}
+{% block body %}
+<div class="page-head"><h1>Your terms</h1><p class="lede">What you want from a job. Each posting is checked against these, and the result is the second score in the both-ways chart.</p>
+{% if is_default %}<p class="notice">These are examples, not your terms. Replace them with your own before you rely on the second score.</p>{% endif %}</div>
+<form method="post" class="form">{{ csrf_field() }}
+  <div class="ribbon ribbon-yellow"><h2>Terms</h2><p class="ribbon-note">Clear a name to remove its row</p></div>
+  <div class="table-scroll"><table class="terms-table stack-sm"><thead><tr><th>Name</th><th>What it means, in a sentence a stranger could check against a posting</th><th>How much it matters</th></tr></thead><tbody>
+  {% for i in range(criteria|length + 2) %}{% set c = criteria[i] if i < criteria|length else {'name': '', 'description': '', 'importance': 'important'} %}
+  <tr><td><input name="name_{{ i }}" value="{{ c.name }}" aria-label="Name of term {{ i + 1 }}"{% if i >= criteria|length %} placeholder="New term"{% endif %}></td><td><input name="description_{{ i }}" value="{{ c.description }}" aria-label="Meaning of term {{ i + 1 }}"></td>
+  <td><select name="importance_{{ i }}" aria-label="Importance of term {{ i + 1 }}">{% for imp in importances %}<option value="{{ imp }}" {% if c.importance == imp %}selected{% endif %}>{{ imp|capitalize }}</option>{% endfor %}</select></td></tr>{% endfor %}</tbody></table></div>
+  <div class="submit-row"><button>Save terms</button><p class="form-note">A posting that breaks a dealbreaker is marked with a cross in the both-ways chart, whatever its score.</p></div></form>
+{% endblock %}

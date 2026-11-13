@@ -1,0 +1,361 @@
+{# Shared by the public report page and the admin run page. Context: run, fit, primary, terms, marked, pool,
+   letters, messages, suggestions, can_chat, can_letter, show_cv, admin, busy, token (public only). #}
+{% import "_ui.html" as ui %}
+{% set state_url = url_for('admin.run_state', run_id=run.id) if admin else url_for('public.state', token=token) %}
+{% set marked_idx = [] %}
+{% for row in marked %}{% for seg in row %}{% if seg.item is not none %}{% set _ = marked_idx.append(seg.item) %}{% endif %}{% endfor %}{% endfor %}
+
+{% macro application_fields() %}
+  <div class="fields">
+    <div class="field f-5"><span class="field-label">Posting</span><p class="field-value" data-live-posting>{{ run.title or 'Untitled posting' }}</p><p class="field-sub" data-live-company {% if not run.company %}hidden{% endif %}>{{ run.company }}</p></div>
+    <div class="field f-3 f-half"><span class="field-label">Checked against</span><p class="field-value">{% if not admin and not run.cv_text %}<a href="{{ url_for('public.cv_pdf', name=cv_pdf_stem) }}" target="_blank" rel="noopener">{{ owner_name }}</a>{% else %}{{ owner_name }}{% endif %}</p></div>
+    <div class="field f-2 f-half"><span class="field-label">Received</span><p class="field-value">{{ run.created|day }}</p></div>
+    <div class="field f-2"><span class="field-label">{{ 'Kept until' if run.source == 'public' and run.expires else 'Reference' }}</span><p class="field-value">{% if run.source == 'public' and run.retention == 'session' %}About {{ session_hours }} hours after your last action{% elif run.source == 'public' and run.expires %}{{ run.expires|day }}{% else %}{{ (run.share_token or '')[:6]|upper if not admin else 'No. ' ~ run.id }}{% endif %}</p></div>
+  </div>
+{% endmacro %}
+
+{% macro result_fields(r) %}
+  <div class="fields">
+    <div class="field f-4 field-fill"><span class="field-label">Result</span>
+      {% if r.score is not none %}<p class="field-big">{{ "%.0f"|format(r.score) }}% match</p>{{ chart_meter(r.score, 'Match') }}
+      {% else %}<p class="field-mid">No score</p><p class="field-sub">{% if r['items'] %}Every requirement has weight 0, so there is nothing to add up.{% else %}No requirements were found in this posting, so there is nothing to score.{% endif %}</p>{% endif %}</div>
+    <div class="field f-4"><span class="field-label">Minimum requirements</span>
+      {% if r.gap[1] %}<p class="field-value">{{ r.gap[1] - r.gap[0] }} of {{ r.gap[1] }} minimum requirements are met or partly met</p>{% else %}<p class="field-value">The posting names no minimum requirements</p>{% endif %}
+      <p class="field-sub">A requirement the CV does not show is marked “Not shown”. That does not mean the person lacks it.</p></div>
+    <div class="field f-4"><span class="field-label">How to read this</span>
+      <p class="field-sub">Each verdict is a model's reading of the posting against the CV, not a fact. Minimum requirements count twice as much as desirable ones, and “partly” counts half.</p></div>
+  </div>
+{% endmacro %}
+
+{% macro exchange_block(exchanges) %}{% for ex in exchanges %}{% if ex.to == 'matcher' %}
+      {% for r in (ex.response.result.structuredContent or {}).get('results', []) %}<div class="matcher-item">
+        <p class="matcher-statement">{{ ui.stamp(r.verdict, 'sm') }} <span>{{ r.statement }}</span></p>
+        {% if r.line %}<q class="cv-quote"><span class="cv-line">{{ r.line }}</span><span class="cv-src">CV, {{ r.section }}</span></q>{% endif %}
+        <p class="matcher-reason">{{ r.reason }}</p></div>{% endfor %}
+      <details class="exchange"><summary>The chat bot asked the matcher</summary>
+        <p class="exchange-line"><span class="exchange-who">Chat bot → matcher</span> {{ ex.request.params.name }} {{ ex.request.params.arguments|tojson }}</p>
+        <p class="exchange-line"><span class="exchange-who">Matcher → chat bot</span> {{ ex.response.result.content[0].text }}</p>
+        <pre class="exchange-raw">{{ ex.request|tojson(indent=2) }}
+{{ ex.response|tojson(indent=2) }}</pre>
+        <p class="exchange-note">The matcher is a model that runs the same judging step as the report, with the same rules. It read the whole CV for these statements. What it says is a reading of the CV: it never changes the report or the percentage.</p>
+      </details>
+      {% else %}
+      <details class="exchange"><summary>The chat bot asked the match engine</summary>
+        <p class="exchange-line"><span class="exchange-who">Chat bot → match engine</span> {{ ex.request.params.name }} {{ ex.request.params.arguments|tojson }}</p>
+        <p class="exchange-line"><span class="exchange-who">Match engine → chat bot</span> {% if ex.response.result %}{{ ex.response.result.content[0].text }}{% else %}{{ ex.response.error.message }}{% endif %}</p>
+        <pre class="exchange-raw">{{ ex.request|tojson(indent=2) }}
+{{ ex.response|tojson(indent=2) }}</pre>
+        <p class="exchange-note">The match engine is plain code, not a second model: it owns the scoring and the chat bot only asks it.</p>
+      </details>{% endif %}{% endfor %}{% endmacro %}
+
+{% macro requirement_rows(r, linked) %}
+  <div class="reqs-head" aria-hidden="true"><span></span><span>The posting asks for</span><span>Verdict</span></div>
+  {% set ns = namespace(n=0) %}
+  {% set n_min = r['items']|selectattr('kind', 'equalto', 'minimum')|list|length %}
+  {# Two blocks, minimum first. loop.index0 below is the requirement's original position: the posting's links use it. #}
+  {% for is_min, key, title, note, count in [(true, 'min', run.min_heading or 'Minimum requirements', 'Counted as the minimum requirements' if run.min_heading else 'What the posting says it needs', n_min),
+                                              (false, 'nice', run.nice_heading or 'Nice to have', 'Counted as nice to have' if run.nice_heading else 'Preferred, a plus, or an example', r['items']|length - n_min)] %}
+  {% if count %}
+  <div class="reqs-group reqs-group-{{ key }}">
+    <div class="reqs-group-head"><h3>{{ title }}</h3><p>{{ note }}</p></div>
+  <ol class="reqs">
+    {% for it in r['items'] %}{% if (it.kind == 'minimum') == is_min %}{% set ns.n = ns.n + 1 %}
+    <li class="req" id="item-{{ it.id }}"{% if linked %} data-req="{{ loop.index0 }}"{% endif %}>
+      <span class="req-n">{{ ns.n }}</span>
+      <div><p class="req-text">{{ it.text }}</p>
+        {% if linked and loop.index0 in marked_idx %}<a class="req-where no-print" href="#hl-{{ loop.index0 }}">Show it in the posting</a>{% endif %}</div>
+      <div class="req-right">
+      <div class="req-verdict">
+        {{ ui.stamp(it.eff_verdict) }}
+        {% if it.overridden or admin %}<span class="req-meta">
+          {% if admin and it.line_overridden %}<span class="tag">your line</span>{% endif %}
+          {% if it.overridden %}<span class="tag">{{ 'overridden' if admin else 'changed by ' ~ owner_name ~ ' from the model\'s ' ~ it.verdict|verdict_label }}</span>{% endif %}
+          {% if admin and it.flag %}<span class="tag tag-solid">cited line not found in the CV</span>{% endif %}
+          {% if admin %}<span>weight {{ it.eff_weight }}</span>{% endif %}</span>{% endif %}
+        {% if admin %}
+        <details class="more req-override no-print"><summary>Change the verdict or the CV line</summary>
+          <form method="post" action="{{ url_for('admin.item_override', item_id=it.id) }}">{{ csrf_field() }}
+            <select name="override_verdict" aria-label="Your verdict for requirement {{ ns.n }}"><option value="">Keep the model's: {{ it.verdict|verdict_label }}</option>
+              {% for v in ['met', 'partial', 'not_on_record'] %}<option value="{{ v }}" {% if it.override_verdict == v %}selected{% endif %}>{{ v|verdict_label }}</option>{% endfor %}</select>
+            <select name="override_weight" aria-label="Weight of requirement {{ ns.n }}"><option value="">Default weight ({{ 2 if it.kind == 'minimum' else 1 }})</option>
+              {% for w in range(0, 6) %}<option value="{{ w }}" {% if it.override_weight == w %}selected{% endif %}>Weight {{ w }}</option>{% endfor %}</select>
+            {% set best, others = line_picker(it.text) %}
+            <select name="override_chunk" aria-label="CV line for requirement {{ ns.n }}"><option value="">Keep the model's line{% if it.model_evidence %}: {{ it.model_evidence|truncate(60) }}{% else %} (none){% endif %}</option>
+              <optgroup label="Best matches">{% for c in best %}<option value="{{ c.id }}" {% if it.override_chunk_id == c.id %}selected{% endif %}>{{ c.section }}: {{ c.text|truncate(90) }}</option>{% endfor %}</optgroup>
+              <optgroup label="Other lines in the CV">{% for c in others %}<option value="{{ c.id }}" {% if it.override_chunk_id == c.id %}selected{% endif %}>{{ c.section }}: {{ c.text|truncate(90) }}</option>{% endfor %}</optgroup></select>
+            <button class="quiet">Save</button>
+          </form></details>
+        {% endif %}
+      </div>
+      <div class="req-evidence">
+        {% if it.evidence and show_cv %}{% set clipped = it.evidence|clip_line %}{% if clipped %}<details class="clip"><summary><q class="cv-line clip-short">{{ clipped }}</q><q class="cv-line clip-full">{{ it.evidence }}</q></summary></details>{% else %}<q class="cv-line">{{ it.evidence }}</q>{% endif %}<span class="cv-src">CV, {{ it.section }}</span>
+        {% elif it.evidence %}<span class="cv-src">Rests on a line in the CV section “{{ it.section }}”. The text is not shared on this link.</span>{% endif %}
+        {% if admin or it.eff_verdict != 'met' or not (it.evidence and show_cv) %}<p>{{ it.reason }}</p>{% endif %}
+      </div>
+      </div>
+    </li>
+    {% endif %}{% endfor %}
+  </ol>
+  </div>
+  {% endif %}
+  {% endfor %}
+{% endmacro %}
+
+<div class="report-page stack{% if can_chat %} has-chat{% endif %}">
+{% if overall and overall.error is not defined %}
+<section id="overall" class="form" aria-labelledby="overall-title">
+  <div class="ribbon"><h2 id="overall-title">Overall reading</h2><p class="ribbon-note">A model's reading of the whole CV against the whole posting. Not a score.</p></div>
+  <div class="fields">
+    <div class="field f-4 field-fill"><span class="field-label">The whole CV against the whole posting</span><p class="field-big field-big-long">{{ overall.label }}</p></div>
+    <div class="field f-8"><span class="field-label">In short</span><p class="field-text">{{ overall.summary }}</p></div>
+  </div>
+</section>
+{% endif %}
+<div id="report" class="stack" data-state-url="{{ state_url }}">
+{% if admin %}
+<section class="form" aria-label="Application">
+  <div class="ribbon ribbon-pink"><h2>Posting against the CV</h2><p class="ribbon-note">{{ fit|length }} report{{ '' if fit|length == 1 else 's' }}{% if terms %}, {{ terms|length }} check{{ '' if terms|length == 1 else 's' }} against your terms{% endif %}</p></div>
+  {{ application_fields() }}
+</section>
+{% endif %}
+{% for r in fit %}
+{% set is_primary = primary and r.id == primary.id %}
+{% if admin %}
+<details class="form result{% if is_primary %} stamps-land{% endif %}" id="result-{{ r.id }}"{% if is_primary or r.status != 'done' %} open{% endif %}>
+  <summary><div class="ribbon ribbon-pink result-head">
+    <h2>{{ ui.model(r.backend) }}</h2>
+    {{ ui.status(r.status) }}
+    {% if r.status == 'done' and r.score is not none %}<span class="nowrap"><strong>{{ "%.0f"|format(r.score) }}%</strong></span>{% endif %}
+    {% if r.seconds %}<span class="small nowrap">{{ r.seconds|secs }}</span>{% endif %}
+    {% if r.reviewed %}<span class="tag">Reviewed</span>{% endif %}
+    <span class="fold"></span></div></summary>
+{% else %}
+<section class="form result{% if is_primary %} stamps-land{% endif %}" id="result-{{ r.id }}">
+  <div class="ribbon ribbon-pink result-head"><h2>Posting against the CV</h2>{% if r.status != 'done' %}{{ ui.status(r.status) }}{% endif %}</div>
+  {% if loop.first %}{{ application_fields() }}{% endif %}
+{% endif %}
+  {% if r.status == 'failed' %}<div class="form-body"><p class="notice notice-error" role="alert">{% if admin %}{{ r.error }}{% else %}This report could not be produced. Check the posting again from the start page, or paste a shorter text.{% endif %}</p></div>{% endif %}
+  {% if r.status in ('queued', 'running') %}<div class="form-body" role="status">{{ ui.working('Reading the posting and checking each requirement against the CV. This usually takes under a minute, and the page updates by itself.') }}</div>{% endif %}
+  {% if r.status == 'done' %}
+    {{ result_fields(r) }}
+    {{ requirement_rows(r, is_primary) }}
+    {% if admin %}
+    <div class="submit-row no-print actions">
+      <form method="post" action="{{ url_for('admin.result_reviewed', result_id=r.id) }}">{{ csrf_field() }}
+        <input type="hidden" name="value" value="{{ 0 if r.reviewed else 1 }}">
+        <button class="quiet">{{ 'Reviewed (undo)' if r.reviewed else 'Mark reviewed' }}</button></form>
+      {% if r.trace_id %}<a href="{{ url_for('admin.trace', trace_id=r.trace_id) }}">Open the trace</a>{% endif %}
+      <p class="form-note">Mark a report reviewed once its verdicts are right. Reviewed reports become your labels in the evals.</p>
+    </div>
+    {% endif %}
+  {% endif %}
+{% if admin %}</details>{% else %}</section>{% endif %}
+{% endfor %}
+</div>
+
+{% if overall and overall.error is defined and not admin %}<p class="form-note">An overall reading could not be produced for this report. The requirement check is complete.</p>{% endif %}
+{% if overall and (admin or overall.error is not defined) %}
+<details id="overall-detail" class="form fold-box">
+  <summary class="ribbon"><h2 id="overall-detail-title">What the overall reading rests on</h2><p class="ribbon-note">The points behind it, with the CV lines</p></summary>
+  {% if overall.error is defined %}
+  <div class="form-body"><p class="notice">{% if admin %}The overall reading failed: {{ overall.error }}{% else %}An overall reading could not be produced for this report. The requirement check is complete.{% endif %}</p></div>
+  {% else %}
+  <div class="form-body">
+    <p class="form-note">A model's reading of the whole CV against the whole posting, the way a hiring manager would read it. It is not a score and does not change the percentage. “Inferred” means the CV makes a point likely without stating it; check those points before relying on them.</p>
+    {% for kind, title in [('strength', 'What fits'), ('expected', 'What the CV makes likely'), ('gap', 'Where the CV and the role differ')] %}
+    {% set pts = overall.points|selectattr('kind', 'equalto', kind)|list %}
+    {% if pts %}<h3>{{ title }}</h3>
+    <ul class="overall-list">
+      {% for p in pts %}<li>
+        <p>{{ p.text }}</p>
+        <div class="overall-meta"><span class="tag{{ '' if p.basis == 'on_record' else ' tag-soft' }}">{{ 'On record' if p.basis == 'on_record' else 'Inferred from the CV' }}</span>
+          {% for l in p.lines if l.text %}<q class="cv-line">{{ l.text }}</q><span class="cv-src">CV, {{ l.section }}</span>{% endfor %}
+          {% if p.lines and not p.lines[0].text %}<span class="cv-src">Rests on {{ p.lines|length }} line{{ '' if p.lines|length == 1 else 's' }} in the CV. The text is not shared on this link.</span>{% endif %}</div>
+      </li>{% endfor %}
+    </ul>{% endif %}
+    {% endfor %}
+    {% if overall.interview_checks %}<h3>Worth confirming in a conversation</h3>
+    <ul class="overall-list">{% for q in overall.interview_checks %}<li><p>{{ q }}</p></li>{% endfor %}</ul>{% endif %}
+  </div>
+  {% endif %}
+</details>
+{% endif %}
+
+{% if not admin and marked and pool %}<div class="split">{% endif %}
+{% if marked %}
+<details id="posting" class="form fold-box">
+  <summary class="ribbon"><h2 id="posting-title">The posting, marked</h2><p class="ribbon-note">The posting's own text, with each requirement marked where it came from</p></summary>
+  <div class="form-body">
+    <p class="form-note">The number after a marked sentence leads to its row in the report.</p>
+    <ul class="legend" aria-label="Underline colours"><li><span class="key hl-met"></span>Met</li><li><span class="key hl-partial"></span>Partly</li><li><span class="key hl-not_on_record"></span>Not shown</li></ul>
+    <div class="posting-text">{% for row in marked %}<p>{% for seg in row %}{% if seg.item is not none %}<a class="hl-link" href="#item-{{ primary['items'][seg.item].id }}"><mark class="hl hl-{{ seg.verdict }}" id="hl-{{ seg.item }}" data-req="{{ seg.item }}">{{ seg.text }}</mark><sup>{{ seg.item + 1 }}<span class="sr">, {{ seg.verdict|verdict_label }}</span></sup></a> {% else %}{{ seg.text }} {% endif %}{% endfor %}</p>{% endfor %}</div>
+  </div>
+</details>
+{% endif %}
+
+{% if admin and terms %}
+<section id="both-ways" class="form" aria-labelledby="terms-title">
+  <div class="ribbon ribbon-pink"><h2 id="terms-title">The posting against your terms</h2><p class="ribbon-note"><a href="{{ url_for('admin.terms') }}">Edit your terms</a></p></div>
+  {% for t in terms %}
+  <div class="form-body result-head">
+    <strong>{{ ui.model(t.backend) }}</strong> {{ ui.status(t.status) }}
+    {% if t.trace_id %}<a class="small" href="{{ url_for('admin.trace', trace_id=t.trace_id) }}">Open the trace</a>{% endif %}
+  </div>
+  {% if t.status == 'failed' %}<div class="form-body"><p class="notice notice-error">{{ t.error }}</p></div>{% endif %}
+  {% if t.status in ('queued', 'running') %}<div class="form-body">{{ ui.working('Checking the posting against your terms.') }}</div>{% endif %}
+  {% if t.score is not none %}
+  <div class="fields">
+    <div class="field f-5 field-fill"><span class="field-label">Result</span><p class="field-big field-big-long">{{ "%.0f"|format(t.score) }}% fit to your terms</p>{{ chart_meter(t.score, 'Fit to your terms') }}</div>
+    <div class="field f-7"><span class="field-label">Dealbreakers</span>
+      {% if t.conflicts %}<p class="field-value">{{ t.conflicts|length }} dealbreaker{{ '' if t.conflicts|length == 1 else 's' }} conflict</p><p class="field-sub">The posting says something that breaks a term you marked as a dealbreaker.</p>
+      {% else %}<p class="field-value">No dealbreaker conflicts</p><p class="field-sub">Nothing in the posting breaks a term you marked as a dealbreaker. Where the posting is silent, that is shown.</p>{% endif %}</div>
+  </div>{% endif %}
+  {% if t['items'] %}<div class="table-scroll"><table class="stack-sm"><thead><tr><th>Your term</th><th>Verdict</th><th>What the posting says</th></tr></thead><tbody>
+    {% for it in t['items'] %}<tr>
+      <td><strong>{{ it.name }}</strong> <span class="tag tag-soft">{{ it.importance }}</span><span class="sub">{{ it.description }}</span></td>
+      <td>{{ ui.stamp(it.eff_verdict, 'sm') }}{% if it.overridden %} <span class="tag">overridden</span>{% endif %}
+        <details class="more no-print"><summary>Change the verdict</summary>
+        <form method="post" action="{{ url_for('admin.term_override', item_id=it.id) }}" class="inline-form">{{ csrf_field() }}
+          <select name="override_verdict" aria-label="Your verdict for {{ it.name }}"><option value="">Keep the model's: {{ it.verdict|verdict_label }}</option>
+            {% for v in ['fits', 'conflict', 'unclear'] %}<option value="{{ v }}" {% if it.override_verdict == v %}selected{% endif %}>{{ v|verdict_label }}</option>{% endfor %}</select>
+          <button class="quiet">Save the verdict</button></form></details></td>
+      <td>{% if it.quote %}<q class="cv-line">{{ it.quote }}</q><span class="cv-src">From the posting</span>{% endif %}{{ it.reason }}</td></tr>{% endfor %}</tbody></table></div>{% endif %}
+  {% endfor %}
+</section>
+{% endif %}
+
+{% if pool %}
+<section id="pool" class="form" aria-labelledby="pool-title">
+  <div class="ribbon"><h2 id="pool-title">How many LinkedIn profiles match</h2><p class="ribbon-note">A reference, not a verdict</p></div>
+  <div class="form-body">
+    <p class="form-note">Each number counts profiles whose text contains the search terms. It does not count people who can do the work. LinkedIn rounds and caps its counts, and the result depends on who runs the search.</p>
+    {% if pool.rarity %}<p><strong>About 1 in {{ "{:,}".format(pool.rarity.one_in) }}</strong> of the {{ "{:,}".format(pool.rarity.first) }} profiles with a matching title also contain all the terms up to “{{ pool.rarity.last_label }}”{% if pool.rarity.capped %} (at least: a count was capped){% endif %}.</p>{% endif %}
+    {% if pool.funnel %}{{ chart_funnel(pool.funnel) }}
+    {% elif admin and not pool.steps %}<p class="empty"><strong>No search plan yet.</strong> Draft one below. It gives you a LinkedIn search for the titles, then one that adds each requirement in turn. You run the searches and type in the counts.</p>
+    {% elif admin %}<p class="muted">No counts yet. Open each search below, read the number of results off LinkedIn and enter it.</p>{% endif %}
+    {% if admin %}
+    <form method="post" action="{{ url_for('admin.pool_plan', run_id=run.id) }}" class="inline-form no-print">{{ csrf_field() }}
+      <div class="ctl"><label for="pool-model">Model that drafts the searches</label>
+      <select id="pool-model" name="backend">{% for m in models if m.available and m.enabled and m.provider != 'baseline' %}<option value="{{ m.id }}">{{ m.label }}</option>{% endfor %}</select></div>
+      <button class="quiet">{{ 'Redraw the search plan' if pool.steps else 'Draft the search plan' }}</button></form>
+    {% endif %}
+  </div>
+  {% if admin and pool.steps %}<div class="table-scroll"><table class="stack-sm"><thead><tr><th>Step</th><th>Search</th><th class="col-count">Count read off LinkedIn</th></tr></thead><tbody>
+    {% for s in pool.steps %}<tr><td><strong>{{ s.label }}</strong></td>
+      <td><a href="{{ s.url }}" rel="noopener noreferrer" target="_blank">open search</a> <span class="muted small">(LinkedIn, new tab)</span><code class="query">{{ s.query }}</code></td>
+      <td><form method="post" action="{{ url_for('admin.pool_count', step_id=s.id) }}" class="inline-form count-form">{{ csrf_field() }}
+        <div class="ctl"><label class="small" for="count-{{ s.id }}">Count</label><input id="count-{{ s.id }}" name="count_text" value="{{ s.count_text }}" placeholder="1,200 or 1K+" size="10"></div>
+        <div class="ctl"><label class="small" for="source-{{ s.id }}">Read by</label><input id="source-{{ s.id }}" name="source" value="{{ s.source }}" placeholder="LinkedIn, by hand" size="14"></div>
+        <button class="quiet">Save the count</button></form></td></tr>{% endfor %}</tbody></table></div>{% endif %}
+</section>
+{% endif %}
+{% if not admin and marked and pool %}</div>{% endif %}
+
+{% if not admin and (can_letter or letters) and can_chat %}<div class="letter-chat stack">{% endif %}
+{% if can_letter or letters %}
+<section id="letter" class="form" aria-labelledby="letter-title">
+  <div class="ribbon ribbon-yellow"><h2 id="letter-title">Cover letter</h2><p class="ribbon-note">A draft by software</p></div>
+  <div class="form-body">
+  <p class="form-note"><strong>Software wrote this draft</strong> from {{ owner_name }}'s CV and this report. It is not written or sent by {{ owner_name }}. Each paragraph about {{ owner_name }} has to cite a CV line, or the draft is not shown. The downloaded text starts with a line that says the same.</p>
+  {% for l in letters %}
+  <div class="letter" id="letter-{{ l.id }}">
+    {% if l.status in ('queued', 'running') %}<div role="status">{{ ui.status(l.status) }} {{ ui.working('Writing the letter and checking each claim against the CV. The page updates by itself.') }}</div>{% endif %}
+    {% if l.status == 'failed' %}<p class="notice notice-error">{{ ui.status(l.status) }} {% if admin %}{{ l.error }}{% else %}This draft did not pass the checks and is not shown. Draft another one below; failed drafts do not count toward your limit.{% endif %}</p>{% endif %}
+    {% if l.content and (admin or l.status == 'done') %}
+      {% if admin %}
+      <form method="post" action="{{ url_for('admin.letter_edit', letter_id=l.id) }}" class="letter-edit">{{ csrf_field() }}
+        <div class="ctl"><label for="letter-text-{{ l.id }}">Draft by {{ l.backend|short_model }}{% if l.edited %}, edited by you{% endif %}{% if l.variant %} (opening test){% endif %}</label>
+        <textarea id="letter-text-{{ l.id }}" name="content">{{ l.content }}</textarea></div>
+        <div class="letter-bar"><button>Save edits</button>
+          <button type="button" class="quiet" data-copy="#letter-text-{{ l.id }}">Copy the letter</button>
+          {% if l.trace_id %}<a href="{{ url_for('admin.trace', trace_id=l.trace_id) }}">Open the trace</a>{% endif %}</div></form>
+      <ul class="checklist" aria-label="Checks on this draft">
+        {% for e in l.checks.errors %}<li class="is-err">{{ e }}</li>{% endfor %}
+        {% for e in l.checks.warnings %}<li class="is-warn">{{ e }}</li>{% endfor %}
+        {% if l.checks.ok and not l.checks.errors %}<li class="is-ok">Passed the checks that run in code{% if l.checks.words %}: {{ l.checks.words }} words, each paragraph about the candidate cites a CV line{% endif %}.{% if l.edited %} Your edits are not checked again.{% endif %}</li>{% endif %}
+      </ul>
+      {% else %}
+      <div class="letter-paper" id="letter-text-{{ l.id }}" lang="{{ 'de' if 'Write in German' in l.instructions else 'en' }}"><p class="letter-note">Draft written by software from {{ owner_name }}'s CV on {{ l.created[:10] }}. Not written or sent by {{ owner_name }}.</p>{% for p in l.paragraphs %}<p>{{ p.text }}</p>{% endfor %}</div>
+      <div class="letter-bar">
+        <button type="button" class="quiet" data-copy="#letter-text-{{ l.id }}">Copy the letter</button>
+        <a class="button quiet" href="{{ url_for('public.letter_text', token=token, letter_id=l.id) }}">Download as text</a>
+        <button type="button" class="quiet" data-print="#letter-text-{{ l.id }}">Print the letter</button></div>
+      {% endif %}
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% if can_letter %}
+  {% if admin %}
+  <form method="post" action="{{ url_for('admin.letter_create', run_id=run.id) }}" class="no-print">{{ csrf_field() }}
+    <div class="ctl"><label for="letter-model">Model that writes</label>
+    <select id="letter-model" name="backend">{% for m in models if m.available and m.enabled and m.provider != 'baseline' %}<option value="{{ m.id }}">{{ m.label }}</option>{% endfor %}</select></div>
+    <div class="ctl"><label for="letter-instr">Extra instructions (optional)</label><textarea id="letter-instr" name="instructions" class="short"></textarea></div>
+    <details class="more"><summary>Voice and rules the writer follows</summary><pre class="block block-text">{{ letter_rules }}</pre><p class="form-note">Change them under <a href="{{ url_for('admin.settings_page') }}">Settings</a>.</p></details>
+    <button>Draft a cover letter</button></form>
+  <form method="post" action="{{ url_for('admin.letter_variants', run_id=run.id) }}" class="no-print">{{ csrf_field() }}
+    <div class="ctl"><label for="variant-model">Model for the comparison</label>
+    <select id="variant-model" name="backend">{% for m in models if m.available and m.enabled and m.provider != 'baseline' %}<option value="{{ m.id }}">{{ m.label }}</option>{% endfor %}</select></div>
+    <button class="quiet">Compare letter openings</button>
+    <p class="form-note">Writes three drafts (opening with proof, with a question, with the role's problem) that only you see, then lets you compare them blind. {% if letters|selectattr('variant')|list|length >= 2 %}<a href="{{ url_for('admin.letter_arena', run_id=run.id) }}">Compare them</a>. {% endif %}<a href="{{ url_for('admin.letter_arena_results') }}">Results so far</a>.</p></form>
+  {% elif letters|length < limits.letters_per_report %}
+  <form method="post" action="{{ url_for('public.letter', token=token) }}" class="inline-form no-print">{{ csrf_field() }}
+    <div class="ctl"><label for="letter-language">Language</label><select id="letter-language" name="language">{% for l in letter_languages %}<option>{{ l }}</option>{% endfor %}</select></div>
+    <div class="ctl"><label for="letter-length">Length</label><select id="letter-length" name="length">{% for l in letter_lengths %}<option value="{{ l }}" {% if l == 'standard' %}selected{% endif %}>{{ l|capitalize }}</option>{% endfor %}</select></div>
+    <button>Draft a cover letter</button></form>
+  <p class="form-note">{{ letters|length }} of {{ limits.letters_per_report }} drafts used for this report.</p>
+  {% else %}<p class="muted">This report has reached its limit of {{ limits.letters_per_report }} letters.</p>{% endif %}
+  {% endif %}
+  </div>
+</section>
+{% endif %}
+
+{% if can_chat %}
+{% set asked = messages|selectattr('role', 'equalto', 'user')|list|length %}
+<section id="chat" class="form" aria-labelledby="chat-title" data-state-url="{{ state_url }}"
+         data-chat-url="{{ url_for('admin.chat', run_id=run.id) if admin else url_for('public.chat', token=token) }}"
+         data-busy="{{ 1 if busy else 0 }}" data-last-id="{{ messages[-1].id if messages else 0 }}">
+  <div class="ribbon ribbon-yellow"><h2 id="chat-title">Ask the CV</h2></div>
+  <div class="form-body">
+  <p class="form-note"><strong>You are chatting with an AI model, not with {{ owner_first }}.</strong> It answers from the posting, the CV and this report, quotes the CV line it relies on, and declines other topics.</p>
+  <div id="chat-log" class="chat-log" role="log" aria-live="polite" aria-label="Questions and answers" tabindex="0">
+    {% for m in messages %}<div class="msg msg-{{ 'user' if m.role == 'user' else 'assistant' }}{% if m.status == 'pending' %} msg-pending{% endif %}{% if m.status == 'failed' %} msg-failed{% endif %}" data-id="{{ m.id }}">
+      <span class="msg-label">{% if m.role == 'user' %}{{ 'You asked, skeptic on' if m.mode == 'skeptic' else 'You asked' }}{% else %}{{ 'Answer, arguing against the match' if m.mode == 'skeptic' else 'Answer' }}{% endif %}</span>
+      <div class="msg-text">{% if m.status == 'pending' %}<span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="sr">Writing an answer</span>{% elif m.status == 'failed' and not m.content %}{{ (m.error if admin else '') or 'This question could not be answered. Ask it again, or word it differently.' }}{% else %}{{ m.content }}{% endif %}</div>
+      {% for e in m.evidence %}<q class="cv-quote"><span class="cv-line">{{ e.text }}</span><span class="cv-src">CV, {{ e.section }}</span></q>{% endfor %}
+      {{ exchange_block(m.exchanges) }}
+      {% for s in m.suggestions %}<button type="button" class="chip" data-question="{{ s }}">{{ s }}</button>{% endfor %}</div>{% endfor %}
+  </div>
+  {% if suggestions %}<div class="chips" role="group" aria-label="Suggested questions" data-show="2">{% for s in suggestions %}<button type="button" class="chip" data-question="{{ s }}">{{ s }}</button>{% endfor %}</div>{% endif %}
+  {% if not admin and limits %}{% set left = limits.messages_per_chat - asked %}<p id="chat-left" class="chat-left" role="status" data-left="{{ left }}"{% if left > 5 %} hidden{% endif %}>{% if left <= 0 %}You have used all your questions for this report.{% elif left == 1 %}You have 1 question left.{% else %}You have {{ left }} questions left.{% endif %}</p>{% endif %}
+  <form id="chat-form" class="chat-form no-print">
+    <div class="chat-row">
+      <div class="ctl"><label class="sr" for="chat-q">Your question</label>
+      <textarea id="chat-q" name="question" rows="1" maxlength="500" autocomplete="off" placeholder="Ask a question about the CV" aria-describedby="chat-error"></textarea></div>
+      <button>Ask</button>
+    </div>
+    <label class="switch"><input type="checkbox" id="chat-skeptic" role="switch"><span>Play the skeptic<small>Answers argue against the match.</small></span></label>
+  </form>
+  <p id="chat-error" class="notice notice-error" role="alert" hidden></p>
+  </div>
+</section>
+{% endif %}
+{% if not admin and (can_letter or letters) and can_chat %}</div>{% endif %}
+
+{% if admin and (shared_messages or shared_letters) %}
+<section id="shared" class="form" aria-labelledby="shared-title">
+  <div class="ribbon"><h2 id="shared-title">Asked by the holder of the share link</h2><p class="ribbon-note">Read-only. Kept apart from your own chat and drafts</p></div>
+  <div class="form-body">
+  <p class="form-note">What a visitor, or whoever you gave the link to, asked and had drafted on the public page. You cannot answer here, and they never see your thread above.</p>
+  {% if shared_messages %}<h3>Their questions and the answers they got</h3>
+  <div class="chat-log">{% for m in shared_messages %}<div class="msg msg-{{ 'user' if m.role == 'user' else 'assistant' }}{% if m.status == 'failed' %} msg-failed{% endif %}">
+    <span class="msg-label">{% if m.role == 'user' %}{{ 'They asked, skeptic on' if m.mode == 'skeptic' else 'They asked' }}{% else %}{{ 'Answer, arguing against the match' if m.mode == 'skeptic' else 'Answer' }}{% endif %}{% if m.trace_id %} <a href="{{ url_for('admin.trace', trace_id=m.trace_id) }}">Open the trace</a>{% endif %}</span>
+    <div class="msg-text">{% if m.status == 'pending' %}Still being written.{% elif m.status == 'failed' and not m.content %}{{ m.error or 'No answer was produced.' }}{% else %}{{ m.content }}{% endif %}</div>
+    {% for e in m.evidence %}<q class="cv-quote"><span class="cv-line">{{ e.text }}</span><span class="cv-src">CV, {{ e.section }}</span></q>{% endfor %}</div>{% endfor %}</div>{% endif %}
+  {% if shared_letters %}<h3>Letters drafted for them</h3>
+  {% for l in shared_letters %}<div class="letter">{{ ui.status(l.status) }} <span class="muted small">{{ l.backend|short_model }}, {{ l.created|clock }} UTC</span>{% if l.trace_id %} <a class="small" href="{{ url_for('admin.trace', trace_id=l.trace_id) }}">Open the trace</a>{% endif %}
+    {% if l.status == 'failed' %}<p class="notice notice-error">{{ l.error }}</p>{% endif %}
+    {% if l.content %}<div class="letter-paper">{% for p in l.paragraphs %}<p>{{ p.text }}</p>{% else %}<p>{{ l.content }}</p>{% endfor %}</div>{% endif %}</div>{% endfor %}{% endif %}
+  </div>
+</section>
+{% endif %}
+</div>

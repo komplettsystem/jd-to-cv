@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui %}
+{% block title %}Models{% endblock %}
+{% block body %}
+<div class="page-head"><h1>Models</h1><p class="muted">Which models may run, which one does which job, and what each has cost and scored so far.</p></div>
+{% set kinds = eval_kinds() %}
+{% set ns = namespace(kind='') %}
+{% for want in ['synthetic', 'labels'] %}{% if not ns.kind %}{% for id, rows in kinds.items() %}{% for k, rate, n in rows %}{% if k == want %}{% set ns.kind = want %}{% endif %}{% endfor %}{% endfor %}{% endif %}{% endfor %}
+{% set pts = [] %}
+{% for m in models %}{% set s = stats.get(m.id) %}{% if s and s.cost is not none and s.done %}{% for k, rate, n in kinds.get(m.id, []) %}{% if k == ns.kind %}{% set _ = pts.append({'label': m.id|short_model, 'cost': s.cost / s.done, 'quality': rate}) %}{% endif %}{% endfor %}{% endif %}{% endfor %}
+<div class="split split-even">
+<section class="form" aria-labelledby="cq-title">
+  <div class="ribbon ribbon-pink"><h2 id="cq-title">Cost against quality</h2></div>
+  <div class="form-body">
+  {% set c = chart_cost_quality(pts, ns.kind) %}
+  {% if c %}{{ c }}<p class="form-note">Quality here is the share of cases passed on the {{ ns.kind }} datasets only{% if ns.kind == 'synthetic' %}, where the right answer follows from how each case is written{% elif ns.kind == 'labels' %}, where the right answer is your own correction{% endif %}. Other kinds are not mixed in. Only models with a cost on record and a finished run of that kind are drawn. Up and to the left is better.</p>
+  {% else %}<p class="empty"><strong>Nothing to compare yet.</strong> A model appears here once it has produced a report with a known cost and has finished an <a href="{{ url_for('admin.evals') }}">eval</a> on a synthetic or a labels dataset.</p>{% endif %}
+  </div>
+</section>
+<section class="form" aria-labelledby="roles-title">
+  <div class="ribbon ribbon-yellow"><h2 id="roles-title">Roles</h2></div>
+  <form method="post" action="{{ url_for('admin.models_roles') }}">{{ csrf_field() }}
+    <div class="fields">
+    {% for key, label, hint, val in [
+      ('public_model', 'Answers visitors', 'Reports, chat and letters for people who paste a posting. It must have a price, so a local model will not do. Only models up to $' ~ ceiling_in ~ ' in / $' ~ ceiling_out ~ ' out per million tokens are listed (the ceiling is under Settings). None turns checks for visitors off.', public_model),
+      ('chat_model', 'Chat on reports you share', 'None means the model that answers visitors.', chat_model),
+      ('judge_model', 'Judges evals', 'Reads a verdict and its cited CV line and says whether the line supports it.', judge_model)] %}
+    <div class="field"><label class="field-label" for="{{ key }}">{{ label }}</label>
+      <select id="{{ key }}" name="{{ key }}" aria-describedby="{{ key }}-hint"><option value="">None</option>{% for m in (public_choices if key == 'public_model' else models) if m.enabled and m.provider != 'baseline' %}<option value="{{ m.id }}" {% if val == m.id %}selected{% endif %}>{{ m.label }}{% if m.local_only %} (development only, not billed){% endif %}</option>{% endfor %}</select>
+      <p class="field-sub" id="{{ key }}-hint">{{ hint }}{% if no_tools_roles.get(key) %} <strong>{{ no_tools }}</strong>{% endif %}</p></div>
+    {% endfor %}</div>
+    <div class="submit-row"><button>Save roles</button></div></form>
+</section>
+</div>
+<section class="form" aria-labelledby="catalog-title">
+  <div class="ribbon"><h2 id="catalog-title">Catalog</h2><p class="ribbon-note">{{ models|selectattr('enabled')|list|length }} of {{ models|length }} switched on</p></div>
+  <div class="form-body">
+  <form method="post" action="{{ url_for('admin.models_sync') }}" class="actions">{{ csrf_field() }}
+    <span>Fetch the current list and prices from</span>
+    <button name="which" value="openrouter" class="quiet">OpenRouter</button>
+    {% if bedrock_ok %}<button name="which" value="bedrock" class="quiet">Bedrock</button>{% endif %}
+    <button name="which" value="ollama" class="quiet">Ollama</button></form>
+  {% if not bedrock_ok %}<p class="form-note">Bedrock models are hidden until this server has AWS credentials.</p>{% endif %}
+  </div>
+  <div class="table-scroll" id="models-table"><table><thead><tr><th>Model</th><th class="col-state">State</th><th class="num">Price per million tokens, in / out</th><th>Reasoning effort</th><th class="num">Reports</th><th>Eval cases passed, by kind</th><th class="num">Time, median</th></tr></thead><tbody>
+  {% for m in models %}{% set s = stats.get(m.id, {}) %}<tr>
+  <th scope="row">{{ m.label }}<span class="sub">{{ m.id }}</span></th>
+  <td><span class="tag{% if m.enabled %} tag-solid{% endif %}">{{ 'On' if m.enabled else 'Off' }}</span>
+    <form method="post" action="{{ url_for('admin.models_toggle') }}" data-refresh="#models-table">{{ csrf_field() }}<input type="hidden" name="id" value="{{ m.id }}"><input type="hidden" name="enabled" value="{{ 0 if m.enabled else 1 }}"><button class="quiet" aria-label="{{ 'On. Turn off' if m.enabled else 'Off. Turn on' }} {{ m.label }}">{{ 'Turn off' if m.enabled else 'Turn on' }}</button></form>
+    <span class="sub">{% if m.available %}Key set, can run{% else %}Not ready: {{ m.reason }}{% endif %}</span>
+    {% if not m.tools %}<span class="sub">{{ no_tools }}{% if tool_alternatives.get(m.id) %} Similar with tool calls: {{ tool_alternatives[m.id]|map(attribute='label')|join(', ') }}.{% endif %}{% if m.provider == 'ollama' %} Ollama lists the models that support tool calls at ollama.com/search?c=tool.{% endif %}</span>{% endif %}</td>
+  <td class="num">{% if m.local_only %}<span class="muted">Development only, not billed</span>{% elif m.price_in is not none and m.price_in < 0 %}<span class="muted">Price varies, so it cannot serve visitors</span>{% elif m.price_in is not none %}${{ "%.2f"|format(m.price_in * 1000000) }} / ${{ "%.2f"|format(m.price_out * 1000000) }}{% elif m.provider == 'baseline' %}<span class="muted">No model, no cost</span>{% else %}<span class="muted">not known</span>{% endif %}</td>
+  <td>{% if m.provider in ('openrouter', 'bedrock') %}<form method="post" action="{{ url_for('admin.models_effort') }}" data-refresh="#models-table" class="actions">{{ csrf_field() }}<input type="hidden" name="id" value="{{ m.id }}"><label class="sr" for="effort-{{ loop.index }}">Reasoning effort for {{ m.label }}</label><select id="effort-{{ loop.index }}" name="effort">{% for v, t in [('', 'Model default'), ('minimal', 'Minimal'), ('low', 'Low'), ('medium', 'Medium'), ('high', 'High'), ('xhigh', 'Very high'), ('max', 'Maximum')] %}<option value="{{ v }}" {% if m.effort == v %}selected{% endif %}>{{ t }}</option>{% endfor %}</select><button class="quiet">Set</button></form>{% else %}<span class="muted">not used</span>{% endif %}</td>
+  <td class="num">{{ s.get('done', 0) }}</td><td>{% for k, rate, n in kinds.get(m.id, []) %}<span class="kind-row"><span>{{ k }}</span><span class="num">{{ (rate * 100)|pct }}</span></span>{% endfor %}</td><td class="num">{% if s.get('p50') is not none %}{{ s.get('p50')|secs }}{% endif %}</td></tr>{% endfor %}</tbody></table></div>
+</section>
+{% endblock %}

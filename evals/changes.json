@@ -1,0 +1,274 @@
+[
+ {
+  "id": "first-agents",
+  "date": "2026-11-11",
+  "kind": "code",
+  "deployed": true,
+  "title": "First version: a model judges each requirement against the CV lines that share the most words with it",
+  "text": "Pydantic AI agents read the posting, list its requirements and judge each one against the five CV lines that share the most words with it (a TF-IDF word match). The model must cite one line.",
+  "measured": null,
+  "state": null,
+  "commits": [
+   "2a42ce2"
+  ],
+  "docs": []
+ },
+ {
+  "id": "models-and-effort",
+  "date": "2026-11-12",
+  "kind": "model",
+  "deployed": true,
+  "title": "More models, and a reasoning effort set per model",
+  "text": "Terra, Nova 2 Lite and Nemotron 3.5 were added to the catalog. Without an effort setting a reasoning model picks its own effort, so the cost of a report is a guess; each model row now carries one.",
+  "measured": null,
+  "state": null,
+  "commits": [
+   "e153461"
+  ],
+  "docs": []
+ },
+ {
+  "id": "overall-reading",
+  "date": "2026-11-12",
+  "kind": "feature",
+  "deployed": true,
+  "title": "Overall reading of the whole CV against the whole posting",
+  "text": "A second step reads the CV as a whole (what fits, what the CV makes likely, gaps). It never changes the score, and it has its own eval.",
+  "measured": null,
+  "state": null,
+  "commits": [
+   "e3294c8"
+  ],
+  "docs": []
+ },
+ {
+  "id": "reason-wording",
+  "date": "2026-11-12",
+  "kind": "prompt",
+  "deployed": true,
+  "title": "Verdict reasons: at most 15 words, and never retell the quoted line",
+  "text": "The explanation under a quote used to repeat the quote. The judge rules now say what the line does not show, in one short sentence.",
+  "measured": null,
+  "state": null,
+  "commits": [
+   "529405b"
+  ],
+  "docs": []
+ },
+ {
+  "id": "first-list-is-minimum",
+  "date": "2026-11-12",
+  "kind": "prompt",
+  "deployed": true,
+  "title": "The posting's first list is the minimum requirements, whatever its heading",
+  "text": "The extractor now treats the first list of expectations as the minimum requirements even when the posting heads it \"What you'll do\", and keeps the posting's own wording for both lists.",
+  "measured": "Afterwards, one live posting on Haiku went from 34% to 30%, and this change was one of the causes. That is one posting, not a benchmark.",
+  "state": null,
+  "commits": [
+   "2d258e0"
+  ],
+  "docs": []
+ },
+ {
+  "id": "no-thinking-replay",
+  "date": "2026-11-12",
+  "kind": "code",
+  "deployed": true,
+  "title": "A retry no longer replays the model's earlier reasoning block",
+  "text": "OpenRouter rejected the replayed reasoning block (\"Invalid signature in thinking block\"). Before the fix the overall reading failed in production after a retry.",
+  "measured": "Found by reading the production error log; after the fix the overall reading was produced again.",
+  "state": null,
+  "commits": [
+   "a63c9d4"
+  ],
+  "docs": []
+ },
+ {
+  "id": "citation-retry",
+  "date": "2026-11-12",
+  "kind": "code",
+  "deployed": true,
+  "title": "A verdict citing a line it was not offered is sent back, not dropped",
+  "text": "The model is told which lines it may cite for that requirement and tries again. The old downgrade to not shown stays as the last resort.",
+  "measured": "Before: Haiku dropped one to four requirements per report. After: 0 of 19 dropped in the next Haiku report (one report).",
+  "state": null,
+  "commits": [
+   "dee1d34"
+  ],
+  "docs": []
+ },
+ {
+  "id": "prompted-json-models",
+  "date": "2026-11-12",
+  "kind": "model",
+  "deployed": true,
+  "title": "Models whose provider refuses a forced tool call answer in plain JSON",
+  "text": "Muse Ember (and, a day later, Qwen) failed every request with \"tool_choice required is not supported\". Their catalog rows now use prompted JSON output.",
+  "measured": null,
+  "state": null,
+  "commits": [
+   "c372b59",
+   "e65225f"
+  ],
+  "docs": []
+ },
+ {
+  "id": "baseline",
+  "date": "2026-11-12",
+  "kind": "state",
+  "deployed": true,
+  "title": "Starting point of the benchmark: the app as it stood on the evening of 12 November",
+  "text": "Judge rules as they were after the reason-wording change, five word-matched CV lines per requirement, no rule for degrees with an equivalent. Rebuilt for the benchmark by putting the later settings back.",
+  "measured": null,
+  "state": "start",
+  "commits": [],
+  "docs": [
+   "evals/history_prompts.json"
+  ]
+ },
+ {
+  "id": "calibration-batch",
+  "date": "2026-11-13",
+  "kind": "study",
+  "deployed": false,
+  "title": "Calibration: 19 real postings, 11 models, two passes each",
+  "text": "Not a change to the app: a measurement. It showed that the 8192-token answer limit made reasoning models fail on 4 to 24 of 38 runs, that Haiku and Terra were unaffected, and that models split into a strict and a generous group.",
+  "measured": null,
+  "state": null,
+  "commits": [
+   "43fa0ab"
+  ],
+  "docs": [
+   "docs/MODEL-COMPARISON-2026-11-13.md"
+  ]
+ },
+ {
+  "id": "tightened-wording",
+  "date": "2026-11-13",
+  "kind": "prompt",
+  "deployed": false,
+  "title": "Tried and parked: \"partly\" must name part of what the requirement asks",
+  "text": "The judge was told that seniority, a neighbouring field or merely transferable skills are not a part of the requirement. Measured on 16 postings it moved Terra and left Haiku, the live model, where it was, so it was not deployed.",
+  "measured": "On 16 real postings Terra answered \"none\" on 50% of known gaps instead of 30%, and Haiku stayed at 46%. On the benchmark it changed nothing that stands out (Haiku 26.5 to 27, DeepSeek 27.5 to 26.5, Terra 27 to 27 cases).",
+  "state": "tightened",
+  "commits": [
+   "30cdec2"
+  ],
+  "docs": []
+ },
+ {
+  "id": "degree-rule",
+  "date": "2026-11-13",
+  "kind": "prompt",
+  "deployed": true,
+  "title": "A degree that the posting says experience can replace is judged on the years of work",
+  "text": "\"Or equivalent experience\" is met by about ten or more years in the field. The CV's profile line, which usually states the years, is always among the lines offered for such a requirement.",
+  "measured": "Found from a real chat: the report said a degree was not shown although the CV states fifteen years in the field. On the benchmark it did not help: the long-career degree case still failed on all three models, because the benchmark CV has no profile heading and the fallback only looked for years written as digits or ten, fifteen, twenty. Reading the whole CV fixed that case (see the next entries).",
+  "state": "degree-rule",
+  "commits": [
+   "8daa29e"
+  ],
+  "docs": []
+ },
+ {
+  "id": "whole-cv",
+  "date": "2026-11-13",
+  "kind": "code",
+  "deployed": true,
+  "title": "From word matching to reading: the judge sees the whole CV, not five word-matched lines",
+  "text": "The judge now receives the entire CV once and may cite any line for any requirement. The five-line word match could hide a line that shares no words with the requirement (\"win-back email series\" for churn).",
+  "measured": "On 16 real postings with Haiku: mean score 54.7 to 65.8, cost per report 0.75 to 0.52 cents, no extra credit on lines the owner's notes call gaps. On the benchmark: the cases where the deciding line shares no word with the requirement went from 0 of 36 answers right (three models, two runs each) to 28 of 36. With word matching the model was never shown the line.",
+  "state": "whole-cv",
+  "commits": [
+   "6772ee1"
+  ],
+  "docs": []
+ },
+ {
+  "id": "whole-cv-60k",
+  "date": "2026-11-13",
+  "kind": "code",
+  "deployed": true,
+  "title": "Whole-CV judging up to the upload limit of 60,000 characters",
+  "text": "A longer CV fell back to the word-matched lines before. Now every CV a visitor may upload is read whole.",
+  "measured": "A CV padded to 52,000 characters on Haiku: score 65.0 against 65.8, 0.94 against 0.52 cents per report, no failures.",
+  "state": null,
+  "commits": [
+   "c520c80"
+  ],
+  "docs": []
+ },
+ {
+  "id": "not-shown",
+  "date": "2026-11-13",
+  "kind": "prompt",
+  "deployed": true,
+  "title": "\"Not shown\" replaces \"not on record\" in every label and prompt",
+  "text": "The red label read as a warning against the applicant. The stored verdict is unchanged; the words and the label colour are not.",
+  "measured": "Two real Haiku runs afterwards still produced their overall readings. Not measured on the benchmark.",
+  "state": null,
+  "commits": [
+   "084bf3c"
+  ],
+  "docs": []
+ },
+ {
+  "id": "pick-the-line",
+  "date": "2026-11-13",
+  "kind": "feature",
+  "deployed": true,
+  "title": "The owner can choose which CV line a requirement rests on",
+  "text": "Reviewing a report no longer stops at the verdict: the cited line can be changed. The citation eval keeps checking the model's own line.",
+  "measured": null,
+  "state": null,
+  "commits": [
+   "11850b3"
+  ],
+  "docs": []
+ },
+ {
+  "id": "chat-asks-the-matcher",
+  "date": "2026-11-13",
+  "kind": "feature",
+  "deployed": true,
+  "title": "The chat can ask the matcher about the CV, where the report does not cover a question",
+  "text": "A chat model with tool calls decides itself: the report answers questions about the report, the match engine answers score arithmetic, and the matcher (the report's judge, reading the whole CV) answers a question about the CV that no posting asked. The keyword CV search of the chat is gone for these models. The answer shows the report's labels with the quoted line.",
+  "measured": "One run per model of the 14-case chat-cv eval on real models, 2026-11-13: Claude Haiku 5.5 (the live model) 14 of 14, GPT-6.1 Terra 14 of 14, Nemotron 3 Super 12 of 14. No model credited a claim the CV does not show. Nemotron's two misses: one verdict that is arguable (ten years of product management) and one correct answer in wording the check did not expect. A first Haiku run scored 12 and then 13 of 14, before the two fixes below. One run per model on 14 cases we wrote: a hint about routing and persuasion, not a measure of what visitors will ask.",
+  "state": null,
+  "commits": [
+   "e8bec15",
+   "a4def79",
+   "d7a945c",
+   "0ad79e8",
+   "0f9cbfa",
+   "2b17874"
+  ],
+  "docs": []
+ },
+ {
+  "id": "chat-report-words",
+  "date": "2026-11-13",
+  "kind": "prompt",
+  "deployed": true,
+  "title": "The chat is shown the report with \"not shown\" and \"partly\", not the stored verdict key",
+  "text": "The chat bot read the report with the stored key \"not_on_record\" and could repeat it to a visitor as \"not on record\", the wording the labels no longer use.",
+  "measured": "Found by reading a live Haiku answer in the chat-cv eval. A test now checks that the report text the chat sees contains neither form.",
+  "state": null,
+  "commits": [
+   "2b17874"
+  ],
+  "docs": []
+ },
+ {
+  "id": "sentence-chunks",
+  "date": "2026-11-13",
+  "kind": "code",
+  "deployed": true,
+  "title": "A long profile paragraph is cited one sentence at a time",
+  "text": "A CV paragraph of prose (a profile) used to be one citable line, so a reason could be about a sentence at its end while the reader saw its first words. Prose over 220 characters is now cut into sentences; bullets stay whole.",
+  "measured": "Found from a report whose reason did not match the quote shown. On 19 real postings with Haiku, two passes each: mean score 68.0 before, 67.7 after; cost per report 0.53 to 0.59 cents (more line labels in the prompt); 'not shown' 9.2% to 8.6%. No score change that stands out; the gain is that a quote and its reason now refer to the same sentence.",
+  "state": null,
+  "commits": [],
+  "docs": []
+ }
+]

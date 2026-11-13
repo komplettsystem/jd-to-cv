@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}New check{% endblock %}
+{% block body %}
+<div class="page-head"><h1>New check</h1><p class="muted">Give the posting one way: paste it, point to it or upload it. Pasted text wins if you give more than one.</p></div>
+{% if error %}<p class="notice notice-error" role="alert">{{ error }}</p>{% endif %}
+<form method="post" enctype="multipart/form-data" class="stack">
+  {{ csrf_field() }}
+  <section class="form" aria-labelledby="posting-title">
+    <div class="ribbon"><h2 id="posting-title">The posting</h2></div>
+    <div class="fields">
+      <div class="field f-6"><label class="field-label" for="title">Role title</label><input id="title" name="title" value="{{ form.get('title', '') }}"></div>
+      <div class="field f-6"><label class="field-label" for="company">Company</label><input id="company" name="company" value="{{ form.get('company', '') }}"></div>
+      <div class="field"><label class="field-label" for="posting_text">Posting text</label><textarea id="posting_text" name="posting_text">{{ form.get('posting_text', '') }}</textarea></div>
+      <div class="field f-7"><label class="field-label" for="posting_url">Or the web address of the posting</label><input id="posting_url" type="url" name="posting_url" value="{{ form.get('posting_url', '') }}" placeholder="https://"></div>
+      <div class="field f-5"><label class="field-label" for="posting_file">Or a file (.txt, .md, .html)</label><input id="posting_file" type="file" name="posting_file"></div>
+      <div class="field"><label class="field-label" for="extra_facts">Extra facts for this run: things that are true but not in your CV. They count as evidence.</label><textarea id="extra_facts" name="extra_facts" class="short">{{ form.get('extra_facts', '') }}</textarea></div>
+    </div>
+  </section>
+  <section class="form" aria-labelledby="models-title">
+    <div class="ribbon"><h2 id="models-title">Who reads it</h2></div>
+    <div class="form-body">
+    <fieldset class="checks checks-cols"><legend>Models. Each one writes its own report.</legend>{% for m in models %}
+      <label class="check{% if not m.available %} check-off{% endif %}"><input type="checkbox" name="backends" value="{{ m.id }}" {% if not m.available %}disabled{% endif %}
+        {% if m.id in form.getlist('backends') or (not form and m.id == default_model) %}checked{% endif %}>
+        <span>{{ m.label }}{% if m.local_only %} <span class="tag tag-soft">development only, not billed</span>{% endif %}{% if not m.available %}<span class="small"> Unavailable: {{ m.reason }}</span>{% endif %}</span></label>{% endfor %}</fieldset>
+    <label class="check"><input type="checkbox" name="also_terms" value="1"> Also check the posting against my terms. This needs a model, and gives the second score in the both-ways chart.</label>
+    </div>
+    <div class="submit-row"><button class="btn-big">Run the check</button></div>
+  </section>
+</form>
+{% endblock %}

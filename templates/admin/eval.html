@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui %}
+{% block title %}Eval {{ ev.id }}{% endblock %}
+{% block head %}{% if busy %}<meta http-equiv="refresh" content="4">{% endif %}{% endblock %}
+{% block body %}
+{% set n_pass = cases|selectattr('passed')|list|length %}
+{% set n_none = cases|selectattr('passed', 'none')|list|length %}
+{% set n_fail = cases|length - n_pass - n_none %}
+<div class="page-head"><p class="crumbs"><a href="{{ url_for('admin.evals') }}">Evals</a></p><h1>{{ ev.dataset }}</h1></div>
+{% if ev.error %}<p class="notice notice-error" role="alert">{{ ev.error }}</p>{% endif %}
+{% if ev.summary.notes %}<div class="notice" role="note"><p><strong>Read this before the numbers.</strong></p><ul class="plain-list">{% for n in ev.summary.notes %}<li>{{ n }}</li>{% endfor %}</ul></div>{% endif %}
+<section class="form" aria-label="Summary">
+  <div class="ribbon ribbon-pink"><h2>Result</h2>{{ ui.status(ev.status) }}</div>
+  {% if busy %}<div class="form-body" role="status">{{ ui.working('Running the cases. This page reloads by itself every few seconds.') }}</div>{% endif %}
+  <div class="fields">
+    <div class="field f-4 field-fill"><span class="field-label">Cases passed</span>{% if ev.summary.pass_rate is defined and ev.summary.pass_rate is not none %}<p class="field-big">{{ (ev.summary.pass_rate * 100)|pct }}</p>{{ chart_meter(ev.summary.pass_rate * 100, 'Cases passed') }}{% else %}<p class="field-mid">No result yet</p>{% endif %}<p class="field-sub">{{ n_pass }} passed, {{ n_fail }} failed{% if n_none %}, {{ n_none }} not scored{% endif %}</p></div>
+    <div class="field f-4 f-half"><span class="field-label">Model</span><p class="field-value">{{ ui.model(ev.backend) }}</p></div>
+    <div class="field f-4 f-half"><span class="field-label">Kind of dataset</span><p class="field-value">{{ ev.dataset_kind|capitalize }}</p><p class="field-sub">Started {{ ev.created|clock }} UTC</p></div>
+    {% for k, v in (ev.summary.metrics or {}).items() %}<div class="field f-4 f-half"><span class="field-label">{{ k.replace('_', ' ')|capitalize }}</span><p class="field-mid">{% if v is number and 0 <= v <= 1 %}{{ (v * 100)|pct }}{% elif v is float %}{{ '%.2f'|format(v) }}{% else %}{{ v }}{% endif %}</p>{% if v is number and 0 <= v <= 1 %}{{ chart_bar(v, 1, k) }}{% endif %}</div>{% endfor %}
+  </div>
+</section>
+{% if ev.fingerprint %}
+<section class="form" aria-labelledby="ran-title">
+  <div class="ribbon"><h2 id="ran-title">Ran with</h2><p class="ribbon-note">Recorded when the run started{% if ev.as_of %}; stands for the state "{{ ev.as_of }}"{% endif %}</p></div>
+  <div class="fields">{% for k, v in ev.fingerprint.items() %}<div class="field f-3 f-half"><span class="field-label">{{ k.replace('_', ' ')|capitalize }}</span><p class="field-value">{{ 'yes' if v is sameas true else 'no' if v is sameas false else (v if v != '' else '–') }}</p></div>{% endfor %}</div>
+</section>
+{% endif %}
+<section class="form" aria-labelledby="cases-title">
+  <div class="ribbon"><h2 id="cases-title">Cases</h2><p class="ribbon-note">Open a case to see what the model returned</p></div>
+  {% if cases %}
+  <div class="table-scroll"><table class="stack-sm"><thead><tr><th>Case</th><th>Result</th><th>Scores</th><th>Checks</th><th class="num">Time</th></tr></thead><tbody>
+  {% for c in cases %}<tr><td><strong>{{ c.name }}</strong>{% if c.trace_id %} <a class="small" href="{{ url_for('admin.trace', trace_id=c.trace_id) }}">Open the trace</a>{% endif %}
+    {% if c.output or c.error %}<details class="more"><summary>What the model returned</summary>{% if c.error %}<p class="notice notice-error">{{ c.error }}</p>{% endif %}{% if c.output %}<pre class="block">{{ c.output|tojson(indent=2) if c.output is mapping or c.output is sequence and c.output is not string else c.output }}</pre>{% endif %}</details>{% endif %}</td>
+  <td data-th="Result">{% if c.passed is none %}<span class="muted">Not scored</span>{% elif c.passed %}<span class="tag">Passed</span>{% else %}<span class="tag tag-solid">Failed</span>{% endif %}</td>
+  <td data-th="Scores">{% for k, v in (c.scores or {}).items() %}<span class="nowrap">{{ k.replace('_', ' ') }}: {{ '%.2f'|format(v) if v is float else v }}</span><br>{% endfor %}</td>
+  <td data-th="Checks">{% for k, v in (c.assertions or {}).items() %}<span class="nowrap">{{ k.replace('_', ' ') }}: {% if v is sameas true %}yes{% elif v is sameas false %}<strong>no</strong>{% else %}{{ v }}{% endif %}</span><br>{% endfor %}</td>
+  <td class="num" data-th="Time">{{ c.seconds|secs }}</td></tr>{% endfor %}</tbody></table></div>
+  {% else %}<p class="empty"><strong>No cases yet.</strong> They are listed here as each one finishes.</p>{% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,15 @@
+.venv/
+data/
+__pycache__/
+.pytest_cache/
+.env
+.env.*
+!.env.example
+*.db
+*.db-*
+secret.key
+*.tfvars
+*.tfvars.json
+crash.log
+tmp-screenshots/
+tools/export_denylist.local.txt

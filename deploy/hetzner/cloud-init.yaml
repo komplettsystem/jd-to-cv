@@ -1,0 +1,21 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+ssh_pwauth: false
+packages:
+  - docker.io
+  - docker-compose-v2
+  - unattended-upgrades
+write_files:
+  - path: /etc/apt/apt.conf.d/52reboot
+    content: |
+      Unattended-Upgrade::Automatic-Reboot "true";
+      Unattended-Upgrade::Automatic-Reboot-Time "04:30";
+  - path: /etc/cron.d/reverse-apply-update
+    content: |
+      # Weekly rebuild with fresh base images; does nothing until the first deploy has put the code in place.
+      0 3 * * 0 root [ -x /opt/reverse-apply/app/deploy/update.sh ] && /opt/reverse-apply/app/deploy/update.sh >> /var/log/reverse-apply-update.log 2>&1
+runcmd:
+  - fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile && echo '/swapfile none swap sw 0 0' >> /etc/fstab
+  - systemctl enable --now docker
+  - mkdir -p /opt/reverse-apply/state/data

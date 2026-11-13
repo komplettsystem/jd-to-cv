@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui %}
+{% block title %}Trace {{ trace.name }}{% endblock %}
+{% block body %}
+{% set op_names = {'chat': 'Model call', 'invoke_agent': 'Agent run', 'execute_tool': 'Tool call'} %}
+{% macro parts(messages, show_role) %}{% for m in messages %}{% for p in m.parts %}<p class="part-role">{% if show_role and m.role %}{{ m.role|capitalize }}{% endif %}{% if p.type == 'tool_call' %}{{ ', ' if show_role and m.role }}Tool call{% elif p.type == 'tool_result' %}{{ ', ' if show_role and m.role }}Tool result{% endif %}</p><pre class="block part-{{ p.type }}">{{ p.text }}</pre>{% endfor %}{% endfor %}{% endmacro %}
+<div class="page-head"><p class="crumbs"><a href="{{ url_for('admin.traces') }}">Traces</a></p><h1>{{ trace.name }}</h1>
+<p class="muted">This trace holds the full prompts, including the CV and any text a visitor pasted. Keep it private.</p></div>
+{% if trace.error %}<p class="notice notice-error" role="alert">{{ trace.error }}</p>{% endif %}
+<section class="form" aria-label="Summary">
+  <div class="fields">
+    <div class="field f-3 f-half"><span class="field-label">Started</span><p class="field-value">{{ trace.started|clock }} UTC</p></div>
+    <div class="field f-2 f-half"><span class="field-label">Took</span><p class="field-value">{{ trace.duration_ms|ms }}</p></div>
+    <div class="field f-3"><span class="field-label">Model</span><p class="field-value">{{ ui.model(trace.model) }}</p></div>
+    <div class="field f-2 f-half"><span class="field-label">Tokens in / out</span><p class="field-value">{{ trace.input_tokens|num }} / {{ trace.output_tokens|num }}</p></div>
+    <div class="field f-2 f-half"><span class="field-label">Cost</span><p class="field-value">{{ trace.cost_usd|usd }} {{ ui.status(trace.status) }}</p></div>
+  </div>
+</section>
+<section class="form" aria-labelledby="wf-title">
+  <div class="ribbon"><h2 id="wf-title">Steps</h2><p class="ribbon-note">The bar shows when each step ran within the {{ total_ms|ms }}</p></div>
+  {% if spans %}
+  <div class="form-body replay no-print" role="group" aria-label="Replay">
+    <button type="button" data-replay="play">Play</button>
+    <button type="button" class="quiet" data-replay="prev">Step back</button>
+    <button type="button" class="quiet" data-replay="next">Step forward</button>
+    <button type="button" class="quiet" data-replay="all">Show all steps</button>
+    <p class="replay-status" aria-live="polite">{{ spans|length }} steps, all shown. Play walks through them in order and opens each prompt and answer.</p>
+  </div>
+  <ol class="wf" id="waterfall">
+  {% for s in spans %}
+  <li class="span depth-{{ [s.depth, 4]|min }}"><details>
+    <summary><span class="span-name"><span class="span-title">{{ s.name }}</span>{% if s.status == 'error' %} {{ ui.status('error') }}{% endif %}
+      <span class="span-what">{{ op_names.get(s.operation, 'Step') }}{% if s.tokens_in %}, {{ s.tokens_in|num }} tokens in, {{ s.tokens_out|num }} out{% endif %}</span></span>
+      {{ chart_span(s.offset_ms, s.duration_ms, total_ms, s.operation) }}
+      <span class="span-time">{{ s.duration_ms|ms }}</span></summary>
+    <div class="span-body">
+    {% if s.error %}<p class="notice notice-error">{{ s.error }}</p>{% endif %}
+    {% if s.system|map(attribute='parts')|select|list %}<h4>Instructions to the model</h4>{{ parts(s.system, false) }}{% endif %}
+    {% if s.input|map(attribute='parts')|select|list %}<h4>Sent</h4>{{ parts(s.input, true) }}{% endif %}
+    {% if s.output|map(attribute='parts')|select|list %}<h4>Received</h4>{{ parts(s.output, false) }}{% endif %}
+    {% if s.final_result %}<h4>Result of the agent</h4><pre class="block">{{ s.final_result }}</pre>{% endif %}
+    {% if not (s.error or s.final_result or (s.system + s.input + s.output)|map(attribute='parts')|select|list) %}<p class="muted small">This step wraps the ones below it and has no prompt of its own. It started {{ s.offset_ms|ms }} into the trace.</p>{% endif %}
+    </div>
+  </details></li>
+  {% endfor %}
+  </ol>
+  {% else %}<p class="empty"><strong>This trace has no steps.</strong> The job was recorded, but no model or tool call ran inside it.</p>{% endif %}
+</section>
+{% endblock %}

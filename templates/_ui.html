@@ -1,0 +1,13 @@
+{# Small shared pieces. Stamps carry the verdict words; tags carry process states. #}
+{% macro stamp(v, size='') -%}
+<span class="stamp stamp-{{ v }}{% if size %} stamp-{{ size }}{% endif %}">{{ {'met': 'Met', 'partial': 'Partly', 'not_on_record': 'Not shown', 'fits': 'Fits', 'conflict': 'Conflicts', 'unclear': 'Silent'}.get(v, v) }}</span>
+{%- endmacro %}
+{% macro status(s) -%}
+<span class="badge tag {{ s }}">{{ {'queued': 'Waiting', 'running': 'Working', 'done': 'Done', 'failed': 'Failed', 'ok': 'OK', 'error': 'Error', 'pending': 'Waiting'}.get(s, s) }}</span>
+{%- endmacro %}
+{% macro model(id) -%}
+<span class="model" title="{{ id }}">{{ id|short_model }}{% if id|model_provider %} <span class="model-via">{{ id|model_provider }}</span>{% endif %}</span>
+{%- endmacro %}
+{% macro working(text) -%}
+<p class="waiting"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span> {{ text }}</p>
+{%- endmacro %}

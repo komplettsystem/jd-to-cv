@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui %}
+{% block title %}Runs{% endblock %}
+{% block body %}
+<div class="page-head"><h1>Runs</h1><p class="muted">One run is one posting, checked by one or more models.</p></div>
+<p><a class="button" href="{{ url_for('admin.new') }}">Start a new check</a></p>
+<section class="form" aria-label="All runs">{% if not runs %}<p class="empty"><strong>No runs yet.</strong> Paste a posting and pick the models that should read it. <a href="{{ url_for('admin.new') }}">Start the first check.</a></p>{% else %}
+<div class="table-scroll"><table class="stack-sm"><thead><tr><th>Posting</th><th>From</th><th>Overall</th><th>Fit</th><th>Terms</th><th>Models</th><th>Decision</th><th>Link</th></tr></thead><tbody>
+{% for r in runs %}<tr><td><a href="{{ url_for('admin.run_view', run_id=r.id) }}"><strong>{{ r.title or 'Untitled posting' }}</strong></a><span class="sub">{{ r.company }}{% if r.company %}, {% endif %}{{ r.created|clock }}</span></td>
+<td data-th="From">{{ 'Visitor' if r.source == 'public' else 'You' }}</td><td data-th="Overall">{{ r.scores.overall or 'n/a' }}{{ chart_bar(r.scores.overall_pct, 100, 'Overall reading') }}</td><td data-th="Fit">{{ r.scores.fit|pct }}{{ chart_bar(r.scores.fit, 100, 'Fit') }}</td><td data-th="Terms">{{ r.scores.terms|pct }}{{ chart_bar(r.scores.terms, 100, 'Terms') }}</td>
+<td data-th="Models">{% for x in r.results %}<span class="nowrap">{{ x.backend|short_model }}{% if x.kind == 'terms' %} (terms){% endif %}{% if x.status != 'done' %} {{ ui.status(x.status) }}{% endif %}</span>{% if not loop.last %}, {% endif %}{% endfor %}</td>
+<td data-th="Decision">{{ r.human_verdict|capitalize }}</td><td data-th="Link">{{ 'Shared' if r.share_token else '' }}</td></tr>{% endfor %}</tbody></table></div>{% endif %}</section>
+{% endblock %}

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="hero-head">
+  <h1>Does this job fit {{ owner_first }}?</h1>
+  <p class="lede">Give the link to a job posting. Each requirement is checked against {{ owner_name }}'s CV, and the CV line behind every verdict is shown. Then you can ask questions about the match, and a draft cover letter comes with it.</p>
+</div>
+<aside class="audience-box" aria-label="For job seekers"><p><strong>Not a recruiter?</strong> Looking for a job yourself? <a href="{{ url_for('upload.form') }}">Check your own CV against a posting</a>.</p></aside>
+{% if request.args.get('note') == 'deleted' %}<p class="notice" role="status">Your report is deleted, with its chat and its letters.</p>{% endif %}
+{% if error %}<p class="notice notice-error" role="alert">{{ error }}</p>{% endif %}
+<div class="hero-grid">
+  <section class="form" aria-labelledby="apply-title">
+    <div class="ribbon"><h2 id="apply-title">Check a job posting</h2><p class="ribbon-note">Give the link</p></div>
+    {% if not ok %}
+    <div class="form-body"><p class="notice">{{ why }}</p><p>You can still read the <a href="#sample-title">example report</a>.</p></div>
+    {% else %}
+    <form method="post" action="{{ url_for('public.check') }}" enctype="multipart/form-data">
+      {{ csrf_field() }}
+      <input type="hidden" name="ts" value="{{ form_ts }}">
+      <div class="hp" aria-hidden="true"><label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+      <div class="fields entry">
+        {% include "_posting_input.html" %}
+      </div>
+      <div class="submit-row">
+        <button class="btn-big">Check the match</button>
+        <p class="form-note">{{ limits.checks_per_day }} checks per day. Want a report for your own CV instead? <a href="{{ url_for('upload.form') }}">Check your own CV</a>. The posting, the report and the chat are kept for {{ limits.retention_days }} days so you can come back to the link, and you can delete them sooner. <a href="{{ url_for('public.privacy') }}">What is stored</a></p>
+      </div>
+    </form>
+    {% endif %}
+  </section>
+  {% set fold = true %}{% include "_sample.html" %}
+</div>
+
+<div class="trio">
+  <details class="form fold-box">
+    <summary class="ribbon ribbon-yellow"><h2 id="how-title">How it works</h2></summary>
+    <ol class="steps">
+      <li><strong>Give</strong><span>Give the link to a job posting. If the page cannot be read, you can upload it as a PDF. No account and no e-mail address.</span></li>
+      <li><strong>Read</strong><span>A model lists what the posting asks for and sorts it into minimum and desirable requirements.</span></li>
+      <li><strong>Check</strong><span>Each requirement is checked against the CV and stamped: met, partly, or not shown. The CV line behind the verdict is shown next to it.</span></li>
+      <li><strong>Ask</strong><span>Ask follow-up questions. The chat answers from the posting, the CV and the report, and can argue against the match if you ask it to.</span></li>
+      <li><strong>Draft</strong><span>Get a draft cover letter in which each paragraph about the candidate cites a CV line.</span></li>
+    </ol>
+  </details>
+  <details class="form fold-box">
+    <summary class="ribbon ribbon-plain"><h2 id="limits-title">What it will not do</h2></summary>
+    <div class="form-body"><ul class="plain-list">
+      <li>Decide for you. A verdict is a model's reading of two texts, and it can be wrong. The CV line is there so you can check it.</li>
+      <li>Say “no”. “Not shown” means the CV does not show it, not that {{ owner_name }} cannot do it.</li>
+      <li>Speak for {{ owner_name }}. Software writes the report and the letter. {{ owner_name }} does not write or send them.</li>
+      <li>Answer questions outside the posting, the CV and the report.</li>
+      <li>Keep your text for long: {{ limits.retention_days }} days, or until you delete the report.</li>
+    </ul></div>
+  </details>
+  <details class="form fold-box">
+    <summary class="ribbon ribbon-plain"><h2 id="built-title">How it is built</h2></summary>
+    <div class="form-body">
+      <p>Each step (read the posting, judge the evidence, answer, write) is a small agent built with Pydantic AI.</p>
+      <p>Every model call is recorded as an OpenTelemetry trace: the prompt, the answer, the time and the cost.</p>
+      <p>Evals check the agents against test cases with known answers, against reports the owner corrected by hand, and with a second model that judges the cited CV lines.</p>
+      {% if is_admin %}<p><a class="button quiet" href="{{ url_for('admin.dashboard') }}">Open the dashboards</a></p>
+      {% else %}<p class="muted">The owner's dashboards show the runs, the traces, the evals and the spend.</p>{% endif %}
+    </div>
+  </details>
+</div>
+{% endblock %}

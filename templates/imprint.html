@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Imprint{% endblock %}
+{% block description %}Who is responsible for this site.{% endblock %}
+{% block body %}
+<div class="page-head"><h1>Imprint</h1><p class="lede">Who is responsible for this site and for the data it handles.</p></div>
+<section class="form" aria-labelledby="who-title">
+  <div class="ribbon"><h2 id="who-title">Responsible person</h2></div>
+  <div class="fields">
+    <div class="field f-6"><span class="field-label">Name</span><p class="field-value">{{ name }}</p><p class="field-sub">An individual. This site is a personal project, not a company.</p></div>
+    <div class="field f-6"><span class="field-label">Address</span>{% if address %}<p class="field-value">{% for line in address %}{{ line }}{% if not loop.last %}<br>{% endif %}{% endfor %}</p>{% else %}<p class="field-sub">Not set up yet.</p>{% endif %}</div>
+    <div class="field f-6"><span class="field-label">Email</span>{% if email %}<p class="field-value"><a href="mailto:{{ email }}">{{ email }}</a></p>{% else %}<p class="field-sub">Not set up yet.</p>{% endif %}</div>
+    <div class="field f-6"><span class="field-label">Also</span><p class="field-sub">{% if linkedin %}<a href="{{ linkedin }}" rel="noopener">LinkedIn profile</a>. {% endif %}See the <a href="{{ url_for('contact.contact') }}">contact page</a> and the <a href="{{ url_for('public.privacy') }}">privacy page</a>.</p></div>
+    <div class="field"><span class="field-label">Responsible for data protection</span><p class="field-sub">The person named above decides why and how the data on this site is processed (the controller under the GDPR). To have your data deleted or to ask what is stored, write to the email address above; a report can also be deleted at once with the button on its page.</p></div>
+  </div>
+</section>
+{% endblock %}

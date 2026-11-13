@@ -1,0 +1,71 @@
+# Runs on the server from /opt/reverse-apply/app/deploy with --env-file /opt/reverse-apply/state/.env (see update.sh).
+# Caddy gets and renews the HTTPS certificate by itself. The app port is only reachable from Caddy, not from outside.
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "3" }
+services:
+  app:
+    build: ..
+    restart: unless-stopped
+    env_file: /opt/reverse-apply/state/.env
+    environment:
+      MATCH_DATA: /data
+      TRUST_PROXY: "1"
+      AWS_EC2_METADATA_DISABLED: "true"   # this server is not on AWS: do not wait on the cloud-metadata address
+    volumes:
+      - /opt/reverse-apply/state/data:/data
+    expose:
+      - "8000"
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 700m
+    logging: *logging
+  # The public read-only demo ("behind the scenes"): fictional data, no keys, no secrets file, nothing writable but a small
+  # in-memory folder. It is a second copy of the app that has never seen the real database. Reachable at DEMO_DOMAIN once its
+  # DNS record exists; without DEMO_DOMAIN it only answers to the name "localhost" and is not visible from outside.
+  demo:
+    build: ..
+    restart: unless-stopped
+    environment:
+      DEMO_READONLY: "1"
+      MATCH_DATA: /tmp/demo
+      MATCH_DB: /tmp/demo/match.db
+      MATCH_CV: /app/tools/sample_cv.md
+      MATCH_PUBLIC_CV: /app/tools/sample_cv.md
+      OWNER_NAME: Ada Example
+      PUBLIC_URL: https://${DEMO_DOMAIN:-localhost}
+      MAIN_URL: https://${DOMAIN}
+      REPO_URL: ${REPO_URL:-}
+      TRUST_PROXY: "1"
+      COOKIE_SECURE: "1"
+      AWS_EC2_METADATA_DISABLED: "true"
+    command: ["sh", "-c", "mkdir -p /tmp/demo && python tools/seed_demo.py && exec gunicorn -c gunicorn.conf.py -b 0.0.0.0:8000 'app:create_app()'"]
+    expose:
+      - "8000"
+    read_only: true
+    tmpfs: ["/tmp:size=64m"]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 300m
+    logging: *logging
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN}
+      DEMO_DOMAIN: ${DEMO_DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on:
+      - app
+      - demo
+    security_opt: ["no-new-privileges:true"]
+    logging: *logging
+volumes:
+  caddy_data:

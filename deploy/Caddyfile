@@ -1,0 +1,13 @@
+{$DOMAIN} {
+	encode gzip
+	request_body {
+		max_size 3MB
+	}
+	reverse_proxy app:8000
+}
+
+# The read-only demo with made-up data (see the demo service in docker-compose.yml). Needs a DNS record for DEMO_DOMAIN.
+{$DEMO_DOMAIN:localhost} {
+	encode gzip
+	reverse_proxy demo:8000
+}

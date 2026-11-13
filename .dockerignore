@@ -1,0 +1,14 @@
+.venv
+data
+__pycache__
+.pytest_cache
+.env
+tests
+deploy
+*.db
+*.db-*
+.git
+.env*
+*.tfstate*
+tmp-screenshots
+tools/export_denylist.local.txt

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+{% block body %}
+{% set limit_labels = {'checks_per_day': 'Checks per visitor per day', 'messages_per_chat': 'Questions per chat', 'letters_per_report': 'Letter drafts per report', 'session_budget_usd': 'Most one report may spend, with its chat and letters, US dollars', 'daily_budget_usd': 'Most all visitors together may spend in a day, US dollars', 'hourly_budget_usd': 'Most all visitors together may spend in any hour, US dollars', 'auto_letter': 'Write a cover letter automatically after a recruiter’s check (1 = yes, 0 = no)', 'seeker_budget_share': 'Share of the hourly and daily budget that visitors checking their own CV may use (0 to 1)', 'checks_per_day_seeker': 'Checks per visitor per day, own CV', 'checks_per_visitor_per_minute': 'Checks one visitor may start per minute', 'checks_per_minute_all': 'Checks all visitors together may start per minute', 'checks_per_hour_all': 'Checks all visitors together may start per hour', 'monthly_budget_usd': 'Most the site may spend in a month, US dollars', 'posting_max_chars': 'Longest posting, characters', 'retention_days': 'Days a visitor’s report is kept', 'public_price_ceiling_in': 'Dearest model for visitors, US dollars per million tokens read', 'public_price_ceiling_out': 'Dearest model for visitors, US dollars per million tokens written'} %}
+<div class="page-head"><h1>Settings</h1></div>
+<section class="form" aria-labelledby="pubcv-title" data-track>
+  <div class="ribbon ribbon-yellow"><h2 id="pubcv-title">The CV visitors may see quoted</h2>
+    <p class="ribbon-note">{% if uploaded_cv %}Uploaded here: {{ uploaded_lines }} lines{% elif public_cv_file %}From the file {{ public_cv_path }}{% else %}Not set: visitors' checks are off{% endif %}</p><span class="save-state" data-save-state role="status" hidden></span></div>
+  <form method="post" enctype="multipart/form-data">{{ csrf_field() }}<input type="hidden" name="section" value="public_cv">
+    <div class="fields">
+      <div class="field"><label class="field-label" for="cv_file">Upload the CV as a Markdown, text or PDF file</label><input id="cv_file" name="cv_file" type="file" accept=".md,.txt,.pdf"></div>
+      <div class="field"><label class="field-label" for="cv_text">Or paste it here</label><textarea id="cv_text" name="cv_text" class="tall">{{ uploaded_cv }}</textarea>
+        <p class="field-sub">Headings (a line starting with #) become the section names shown next to a quoted line. Email addresses and phone numbers are removed automatically. Saved in the app's database, not in the code or the repository, and it replaces any earlier upload.</p></div>
+    </div>
+    <div class="submit-row"><button>Save the public CV</button>{% if uploaded_cv %}<button name="action" value="clear" class="quiet">Remove the uploaded CV</button>{% endif %}</div>
+  </form>
+</section>
+<section class="form" aria-labelledby="limits-title" data-track>
+  <div class="ribbon ribbon-yellow"><h2 id="limits-title">Limits and spend caps</h2><p class="ribbon-note">Visitors never see the amounts, only that a limit is reached</p><span class="save-state" data-save-state role="status" hidden></span></div>
+  <form method="post">{{ csrf_field() }}<input type="hidden" name="section" value="limits">
+    <div class="fields">{% for k, v in limits.items() %}<div class="field f-4 f-half"><label class="field-label" for="{{ k }}">{{ limit_labels.get(k, k.replace('_', ' ')|capitalize) }}</label><input id="{{ k }}" name="{{ k }}" value="{{ v }}" inputmode="decimal"></div>{% endfor %}</div>
+    <div class="submit-row"><button>Save limits</button></div></form>
+</section>
+<div class="split split-even">
+<section class="form" aria-labelledby="facts-title" data-track>
+  <div class="ribbon ribbon-yellow"><h2 id="facts-title">Extra facts</h2><span class="save-state" data-save-state role="status" hidden></span></div>
+  <form method="post">{{ csrf_field() }}<input type="hidden" name="section" value="facts">
+    <div class="fields"><div class="field"><label class="field-label" for="facts">Facts that are not in the CV, one per line</label><textarea id="facts" name="facts">{{ facts }}</textarea></div></div>
+    <div class="submit-row"><button>Save facts</button><p class="form-note">They count as evidence in your own runs only, never in visitors' reports. Write only what you can defend.</p></div></form>
+</section>
+<section class="form" aria-labelledby="rules-title" data-track>
+  <div class="ribbon ribbon-yellow"><h2 id="rules-title">Cover letter rules: recruiters</h2><span class="save-state" data-save-state role="status" hidden></span></div>
+  <form method="post">{{ csrf_field() }}<input type="hidden" name="section" value="letter_rules">
+    <div class="fields"><div class="field"><label class="field-label" for="letter_rules">Voice and structure for letters written after a recruiter's check, and for your own letters</label><textarea id="letter_rules" name="letter_rules" class="tall">{{ letter_rules }}</textarea></div></div>
+    <div class="submit-row"><button>Save rules</button><p class="form-note">The default asks for no "new to me" lines, claims at the scope the CV line states, plain words and no flattery. It no longer opens with a question; compare drafts before you decide whether it should. Whatever you write here replaces the default for letters written as you.</p></div></form>
+</section>
+</div>
+<section class="form" aria-labelledby="rules-seeker-title" data-track>
+  <div class="ribbon ribbon-yellow"><h2 id="rules-seeker-title">Cover letter rules: visitors' own CVs</h2><span class="save-state" data-save-state role="status" hidden></span></div>
+  <form method="post">{{ csrf_field() }}<input type="hidden" name="section" value="letter_rules_seeker">
+    <div class="fields"><div class="field"><label class="field-label" for="letter_rules_seeker">Voice and structure for letters a visitor asks for after checking their own CV</label><textarea id="letter_rules_seeker" name="letter_rules_seeker" class="tall">{{ letter_rules_seeker }}</textarea></div></div>
+    <div class="submit-row"><button>Save rules</button><p class="form-note">Neutral defaults: the same proof-first opening, without your voice. Changes here never affect letters written as you. Whatever you write in either box, the code checks every draft: at most 320 words, no banned words, no phrases that point to a gap, every body paragraph citing a CV line that exists, and no claim about the writer inside a question paragraph. These are checked in code and cannot be switched off here.</p></div></form>
+</section>
+<section class="form" aria-labelledby="cv-title">
+  <div class="ribbon"><h2 id="cv-title">The CV your own runs read</h2><p class="ribbon-note">Read-only here</p></div>
+  <div class="form-body">
+  <p class="form-note">{% if cv_path_set %}Your runs read <code>{{ cv_path }}</code>.{% else %}Your runs read the uploaded public CV, or the built-in sample when there is none.{% endif %} Contact lines are never quoted to visitors.</p><pre class="block block-text">{{ cv }}</pre></div>
+</section>
+{% endblock %}

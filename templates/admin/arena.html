@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui %}
+{% block title %}Arena{% endblock %}
+{% block body %}
+<div class="page-head"><p class="crumbs"><a href="{{ url_for('admin.run_view', run_id=run.id) }}">Back to the run</a></p>
+<h1>Arena: {{ run.title or 'Run ' ~ run.id }}</h1></div>
+{% if not pair %}
+<section class="form"><p class="empty"><strong>No unvoted pair.</strong> The arena shows two reports on the same posting, from two different models, that you have not compared yet. Run two or more models on this posting from <a href="{{ url_for('admin.run_view', run_id=run.id) }}#arena">the run page</a>.</p></section>
+{% else %}
+<p class="lede">Which report reads the posting and the CV more accurately? The model names are hidden. {{ remaining }} pair{{ '' if remaining == 1 else 's' }} left to compare.</p>
+{% macro cell(it, side) %}<div class="arena-cell{% if not it %} arena-empty{% endif %}">
+  {% if it %}<span class="arena-side">Report {{ side }}</span>
+  <span class="req-kind">{{ 'Minimum requirement' if it.kind == 'minimum' else 'Desirable' }}</span><p class="req-text">{{ it.text }}</p>
+  <div class="arena-verdict">{{ ui.stamp(it.eff_verdict, 'sm') }}</div>
+  {% if it.evidence %}<q class="cv-line">{{ it.evidence }}</q><span class="cv-src">CV{% if it.section %}, {{ it.section }}{% endif %}</span>{% endif %}
+  {% if it.eff_verdict != 'met' or not it.evidence %}<p class="arena-reason">{{ it.reason }}</p>{% endif %}
+  {% else %}<p class="muted">Report {{ side }} has no matching requirement.</p>{% endif %}</div>{% endmacro %}
+<p class="form-note">Each row puts the same requirement of both reports side by side. Models word and list requirements themselves, so a row can have an empty side.</p>
+<section class="form arena-compare">
+  <div class="arena-head">{% for card in pair %}<div class="ribbon ribbon-pink"><h2>Report {{ 'A' if loop.first else 'B' }}</h2><p class="ribbon-note"><strong>{{ card.score|pct }}</strong> match{% if card.gap[1] %}, {{ card.gap[1] - card.gap[0] }} of {{ card.gap[1] }} minimum requirements met or partly met{% endif %}</p></div>{% endfor %}</div>
+  {% for a, b in rows %}<div class="arena-row">{{ cell(a, 'A') }}{{ cell(b, 'B') }}</div>{% endfor %}
+</section>
+<form method="post" action="{{ url_for('admin.arena_vote', run_id=run.id) }}" class="vote">{{ csrf_field() }}
+  <input type="hidden" name="left" value="{{ pair[0].id }}"><input type="hidden" name="right" value="{{ pair[1].id }}">
+  <button name="winner" value="left">A is better</button><button name="winner" value="tie" class="quiet">Tie</button><button name="winner" value="right">B is better</button></form>
+{% endif %}
+{% endblock %}

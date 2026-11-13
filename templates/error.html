@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui %}
+{% block title %}{% if code == 404 %}Page not found{% elif code == 403 %}Not allowed{% elif code == 429 %}Too many requests{% else %}Something went wrong{% endif %}{% endblock %}
+{% block body %}
+<div class="error-page">
+  <h1>{% if code == 404 %}This page is not on file{% elif code == 403 %}This part is for the owner{% elif code == 429 %}Too many requests{% else %}Something went wrong on our side{% endif %}</h1>
+  <p class="lede">{% if code == 404 %}The address is wrong, or the report was deleted or its link turned off. Reports are also removed when their time is up.
+    {% elif code == 403 %}{{ message or "This part of the site is for the owner." }}
+    {% elif code == 429 %}{{ message or "You sent more requests than this site allows in a short time." }} Wait a minute and try again.
+    {% else %}The server could not finish this request. Nothing you entered is lost on the page before. Go back and try again in a moment.{% endif %}</p>
+  <p><a class="button" href="{{ url_for('public.landing') }}">Go to the start page</a></p>
+  <p class="muted small">Error {{ code }}</p>
+</div>
+{% endblock %}

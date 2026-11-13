@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Letter openings{% endblock %}
+{% block body %}
+<div class="page-head"><p class="crumbs"><a href="{{ url_for('admin.run_view', run_id=run.id) }}">Back to the run</a> · <a href="{{ url_for('admin.letter_arena_results') }}">Results so far</a></p>
+<h1>Letter openings: {{ run.title or 'Run ' ~ run.id }}</h1></div>
+{% if not pair %}
+<section class="form"><p class="empty"><strong>No unvoted pair.</strong> The comparison shows two drafts for this report that you have not compared yet, with nothing that says how each one opens or which model wrote it. Ask for drafts on the run page, or look at the <a href="{{ url_for('admin.letter_arena_results') }}">results</a>.</p></section>
+{% else %}
+<p class="lede">Which letter would you rather send? Nothing says how each opens. {{ remaining }} pair{{ '' if remaining == 1 else 's' }} left to compare for this report.</p>
+<div class="arena">{% for card in pair %}<section class="form" aria-labelledby="card-{{ loop.index }}">
+  <div class="ribbon ribbon-pink"><h2 id="card-{{ loop.index }}">Letter {{ 'A' if loop.first else 'B' }}</h2></div>
+  <div class="form-body"><div class="letter-paper">{% for p in card.paragraphs %}<p>{{ p.text }}</p>{% else %}<p>{{ card.content }}</p>{% endfor %}</div></div>
+</section>{% endfor %}</div>
+<form method="post" action="{{ url_for('admin.letter_vote', run_id=run.id) }}" class="vote">{{ csrf_field() }}
+  <input type="hidden" name="left" value="{{ pair[0].id }}"><input type="hidden" name="right" value="{{ pair[1].id }}">
+  <button name="winner" value="left">A is better</button><button name="winner" value="tie" class="quiet">Tie</button><button name="winner" value="right">B is better</button></form>
+{% endif %}
+{% endblock %}

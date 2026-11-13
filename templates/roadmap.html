@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Roadmap{% endblock %}
+{% block description %}What may be added to this site next, and a place to say what you would use or what is missing.{% endblock %}
+{% block body %}
+<div class="page-head"><h1>Roadmap</h1><p class="lede">What may be added next. Nothing here is promised or dated: it is a list of ideas, and your votes and messages decide what comes first.</p></div>
+{% if error %}<p class="notice notice-error" role="alert">{{ error }}</p>{% endif %}
+{% for gkey, gtitle in groups %}
+<section class="form" aria-labelledby="items-{{ gkey }}">
+  <div class="ribbon ribbon-yellow"><h2 id="items-{{ gkey }}">{{ gtitle }}</h2>{% if loop.first %}<p class="ribbon-note">None of these is built yet; what is built is listed at the bottom</p>{% else %}<p class="ribbon-note">Security, reliability and privacy work, not new features</p>{% endif %}</div>
+  <div class="form-body">
+    <ul class="overall-list">
+      {% for it in items if it.get('group', 'features') == gkey %}
+      <li id="item-{{ it.key }}">
+        <h3>{{ it.title }} <span class="tag{{ '' if it.status in ('live', 'planned') else ' tag-soft' }}">{{ statuses[it.status] }}</span></h3>
+        <p>{{ it.what }}</p>
+        <p class="muted">{{ it.why }}</p>
+        <form method="post" action="{{ url_for('roadmap.vote') }}" class="vote-row">{{ csrf_field() }}
+          <input type="hidden" name="item" value="{{ it.key }}">
+          {% if it.key in mine %}<span class="tag">You would use this</span>{% else %}<button class="quiet" aria-label="I would use this: {{ it.title }}">I would use this</button>{% endif %}
+          <span class="small">{{ votes.get(it.key, 0) }} {{ 'person' if votes.get(it.key, 0) == 1 else 'people' }}</span>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+{% endfor %}
+<section class="form" aria-labelledby="wish-title">
+  <div class="ribbon"><h2 id="wish-title">Tell {{ owner_name }} what is missing</h2></div>
+  <form method="post" action="{{ url_for('roadmap.wish') }}">{{ csrf_field() }}
+    <input type="hidden" name="ts" value="{{ form_ts }}">
+    <div class="hp" aria-hidden="true"><label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+    <div class="fields">
+      <div class="field f-6"><label class="field-label" for="wish-item">About (optional)</label>
+        <select id="wish-item" name="item"><option value="">Something else</option>{% for it in items %}<option value="{{ it.key }}" {% if form.get('item') == it.key %}selected{% endif %}>{{ it.title }}</option>{% endfor %}</select></div>
+      <div class="field f-6"><label class="field-label" for="wish-contact">Your email, only if you want a reply (optional)</label>
+        <input id="wish-contact" name="contact" type="email" maxlength="{{ max_contact }}" value="{{ form.get('contact', '') }}" autocomplete="email"></div>
+      <div class="field"><label class="field-label" for="wish-text">What would you like to see or change? Up to {{ max_wish }} characters</label>
+        <textarea id="wish-text" name="text" required maxlength="{{ max_wish }}">{{ form.get('text', '') }}</textarea></div>
+    </div>
+    <div class="submit-row"><button>Send my wish</button>
+      <p class="form-note">Read by a person. Stored with your email if you give one, until it is deleted on request{% if contact_email %}: write to <a href="mailto:{{ contact_email }}">{{ contact_email }}</a>{% endif %}. Please do not put a CV or other personal details in it. <a href="{{ url_for('public.privacy') }}">Privacy</a></p></div>
+  </form>
+</section>
+<section class="form" aria-labelledby="live-title">
+  <div class="ribbon"><h2 id="live-title">Already live</h2><p class="ribbon-note">Built and in use</p></div>
+  <div class="form-body">
+    <ul class="overall-list">
+      {% for it in live %}<li id="item-{{ it.key }}"><h3>{{ it.title }}</h3><p>{{ it.what }}</p></li>
+      {% endfor %}
+    </ul>
+  </div>
+</section>
+{% endblock %}

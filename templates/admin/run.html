@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}{{ run.title or 'Run' }}{% endblock %}
+{% block head %}{% if busy %}<noscript><meta http-equiv="refresh" content="4"></noscript>{% endif %}{% endblock %}
+{% block body %}
+<div class="page-head">
+  <p class="crumbs"><a href="{{ url_for('admin.runs') }}">Runs</a></p>
+  <h1>{{ run.title or 'Untitled posting' }}{% if run.company %}, {{ run.company }}{% endif %}</h1>
+  <p class="muted">Run {{ run.id }}, started {{ run.created|clock }} UTC, {{ 'from a visitor' if run.source == 'public' else 'started by you' }}{% if run.source_url %}, <a href="{{ run.source_url }}" rel="noopener noreferrer">original posting</a>{% endif %}{% if run.human_verdict %}. Your decision: <strong>{{ run.human_verdict }}</strong>{% endif %}</p>
+</div>
+<nav class="subnav" aria-label="Sections of this run"><a href="#report">Report</a>{% if marked %}<a href="#posting">Posting</a>{% endif %}{% if terms %}<a href="#both-ways">Your terms</a>{% endif %}<a href="#pool">Talent pool</a><a href="#letter">Letter</a><a href="#chat">Chat</a>{% if shared_messages or shared_letters %}<a href="#shared">From the link</a>{% endif %}<a href="#add">More models</a><a href="#arena">Arena</a><a href="#your-call">Your call</a><a href="#share">Share</a></nav>
+{% set token = run.share_token %}
+{% include "_report.html" %}
+
+<div class="split split-even">
+<section class="form" id="add" aria-labelledby="add-title">
+  <div class="ribbon"><h2 id="add-title">Run more models</h2></div>
+  <div class="form-body">
+  <form method="post" action="{{ url_for('admin.run_add', run_id=run.id) }}">{{ csrf_field() }}
+    <div class="ctl"><label for="add-model">Model</label><select id="add-model" name="backend">{% for m in models if m.enabled %}<option value="{{ m.id }}" {% if not m.available %}disabled{% endif %}>{{ m.label }}{% if not m.available %} (unavailable){% endif %}</option>{% endfor %}</select></div>
+    <div class="ctl"><label for="add-kind">What to run</label><select id="add-kind" name="kind"><option value="fit">Fit report: the CV against the posting</option><option value="terms">Terms check: the posting against your terms</option></select></div>
+    <button>Run this model</button></form>
+  </div>
+</section>
+
+<section class="form" id="arena" aria-labelledby="arena-title">
+  <div class="ribbon"><h2 id="arena-title">Model arena</h2><p class="ribbon-note">{{ votes|length }} vote{{ '' if votes|length == 1 else 's' }} so far</p></div>
+  <div class="form-body">
+  <p class="form-note">Run the same posting on two or more models. Then compare two reports with the model names hidden and vote for the better one.</p>
+  <form method="post" action="{{ url_for('admin.arena_start', run_id=run.id) }}">{{ csrf_field() }}
+    <details class="more"><summary>Choose models to run</summary>
+    <fieldset class="checks"><legend class="sr">Models</legend>{% for m in models if m.enabled and m.available and m.id != 'baseline' %}<label class="check"><input type="checkbox" name="backends" value="{{ m.id }}"> {{ m.label }}</label>{% endfor %}</fieldset>
+    <button class="quiet">Run these models</button></details></form>
+  <p><a class="button" href="{{ url_for('admin.arena', run_id=run.id) }}">Compare two reports blind</a></p>
+  </div>
+</section>
+</div>
+
+<div class="split split-even">
+<section class="form" id="your-call" aria-labelledby="call-title">
+  <div class="ribbon ribbon-yellow"><h2 id="call-title">Your call</h2><p class="ribbon-note">Private, never shared</p></div>
+  <form method="post" action="{{ url_for('admin.run_meta', run_id=run.id) }}">{{ csrf_field() }}
+    <div class="fields">
+      <div class="field f-6"><label class="field-label" for="title">Role title</label><input id="title" name="title" value="{{ run.title }}"></div>
+      <div class="field f-6"><label class="field-label" for="company">Company</label><input id="company" name="company" value="{{ run.company }}"></div>
+      <div class="field"><label class="field-label" for="human_verdict">Decision</label><select id="human_verdict" name="human_verdict">{% for v in human_verdicts %}<option value="{{ v }}" {% if run.human_verdict == v %}selected{% endif %}>{{ (v or 'Not decided')|capitalize }}</option>{% endfor %}</select></div>
+      <div class="field"><label class="field-label" for="notes">Notes</label><textarea id="notes" name="notes" class="short">{{ run.notes }}</textarea></div>
+    </div>
+    <div class="submit-row"><button>Save your call</button></div></form>
+</section>
+
+<section class="form" id="share" aria-labelledby="share-title">
+  <div class="ribbon ribbon-yellow"><h2 id="share-title">Share</h2><p class="ribbon-note">{{ 'Link is on' if share_url else 'Not shared' }}</p></div>
+  <div class="form-body">
+  {% if share_url %}
+  <p><label for="share-url">Read-only link</label></p>
+  <code class="share-link" id="share-url">{{ share_url }}</code>
+  <p class="letter-bar"><button type="button" class="quiet" data-copy="#share-url">Copy the link</button><a href="{{ share_url }}">Open it</a></p>
+  {% endif %}
+  <p class="form-note">The link shows the scores and verdicts. It never shows your notes, your terms or the traces.</p>
+  <form method="post" action="{{ url_for('admin.run_share', run_id=run.id) }}">{{ csrf_field() }}
+    <input type="hidden" name="action" value="enable">
+    <fieldset class="checks"><legend>The link also allows</legend>
+    <label class="check"><input type="checkbox" name="show_cv" value="1" {% if run.share_show_cv %}checked{% endif %}> Reading the CV lines cited as evidence</label>
+    <label class="check"><input type="checkbox" name="share_chat" value="1" {% if run.share_chat %}checked{% endif %}> Asking questions in the chat (costs model calls)</label>
+    <label class="check"><input type="checkbox" name="share_letter" value="1" {% if run.share_letter %}checked{% endif %}> Drafting a cover letter (costs model calls)</label></fieldset>
+    <button>{{ 'Update the link' if share_url else 'Create a read-only link' }}</button></form>
+  {% if share_url %}<form method="post" action="{{ url_for('admin.run_share', run_id=run.id) }}">{{ csrf_field() }}<input type="hidden" name="action" value="disable"><p><button class="quiet">Turn the link off</button></p></form>{% endif %}
+  </div>
+</section>
+</div>
+
+<section class="form" aria-label="Source text">
+  <div class="form-body"><details class="more"><summary>Posting text and extra facts the models read</summary><h4>Posting text</h4><pre class="block block-text">{{ run.posting_text }}</pre>{% if run.extra_facts %}<h4>Extra facts</h4><pre class="block block-text">{{ run.extra_facts }}</pre>{% endif %}</details></div>
+</section>
+<section class="form danger" aria-label="Delete">
+  <form method="post" action="{{ url_for('admin.run_delete', run_id=run.id) }}" class="submit-row ribbon-plain" data-confirm="Delete this run with its results, chat, letters and traces? This cannot be undone.">{{ csrf_field() }}<p>Delete this run with its results, chat, letters and traces. This cannot be undone.</p><button class="quiet">Delete the run</button></form>
+</section>
+{% endblock %}

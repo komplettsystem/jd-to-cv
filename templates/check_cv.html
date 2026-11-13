@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Check your own CV{% endblock %}
+{% block description %}Paste a job posting and your CV and get a report, a chat and a draft cover letter for that pair.{% endblock %}
+{% block body %}
+<div class="page-head"><h1>Check your own CV</h1><p class="lede">Give the link to a job posting and your own CV. You get the same report as on the start page: each requirement checked against a line of your CV, a chat about the result, and a draft cover letter.</p></div>
+<aside class="audience-box" aria-label="For recruiters"><p><strong>Are you a recruiter?</strong> See how well {{ owner_name }} matches a posting instead: <a href="{{ url_for('public.landing') }}">give the posting here</a>.</p></aside>
+{% if error %}<p class="notice notice-error" role="alert">{{ error }}</p>{% endif %}
+{% if not ok %}
+<section class="form"><div class="form-body"><p class="notice">{{ why }}</p></div></section>
+{% else %}
+<section class="form" aria-labelledby="cv-title">
+  <div class="ribbon"><h2 id="cv-title">Your CV and the posting</h2></div>
+  <form method="post" action="{{ url_for('upload.submit') }}" enctype="multipart/form-data">{{ csrf_field() }}
+    <input type="hidden" name="ts" value="{{ form_ts }}">
+    <div class="hp" aria-hidden="true"><label>Website <input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+    <div class="fields entry">
+      {% include "_posting_input.html" %}
+      <div class="field"><label class="field-label" for="candidate_name">Name on the report (optional)</label><input id="candidate_name" name="candidate_name" maxlength="80" value="{{ form.get('candidate_name', '') }}" autocomplete="off"></div>
+      <div class="field"><label class="field-label" for="cv_text">Your CV: paste the text, up to {{ "{:,}".format(limits.cv_max_chars) }} characters</label>
+        <textarea id="cv_text" name="cv_text" maxlength="{{ limits.cv_max_chars }}">{{ form.get('cv_text', '') }}</textarea>
+        <p class="field-sub">Leave out what the report does not need: photo, home address, date of birth, health, religion, union membership, political views. Email addresses and phone numbers are removed automatically before anything is stored.</p></div>
+      <div class="field"><label class="field-label" for="cv_file">Or upload the CV as a PDF, .txt or .md file, up to {{ max_file_mb }} MB (replaces the pasted text)</label>
+        <input id="cv_file" name="cv_file" type="file" accept=".pdf,.txt,.md,application/pdf,text/plain,text/markdown">
+        <p class="field-sub">Only the text is read; the file itself is not kept. A scanned PDF has no text to read: paste it instead. Your LinkedIn profile works too: on LinkedIn open your profile, choose More, then Save to PDF, and upload that file here.</p></div>
+      <fieldset class="field"><legend class="field-label">How long may the CV and the report be kept?</legend>
+        <label class="check"><input type="radio" name="retention" value="session" {% if form.get('retention', 'session') == 'session' %}checked{% endif %}> Delete them when I am done: about {{ session_hours }} hours after my last action, or at once when I choose “Delete my report”.</label>
+        <label class="check"><input type="radio" name="retention" value="days" {% if form.get('retention') == 'days' %}checked{% endif %}> Keep them for {{ limits.retention_days }} days so I can come back to the link. I can delete them sooner.</label></fieldset>
+      <div class="field"><label class="check consent"><input type="checkbox" name="consent" value="1" required {% if form.get('consent') %}checked{% endif %}>
+        <span>I confirm that this is my own CV. I agree that its text, including any health or similar details I leave in it, is processed to produce my report, chat answers and cover letter, and is sent to an AI model provider ({{ provider }}), which can process it on servers outside the European Economic Area, including the United States, where data protection rules can be weaker than in the EU. This site runs on {{ hosting }}. I can withdraw my agreement at any time by deleting my report. I have read the <a href="{{ url_for('public.privacy') }}">privacy page</a>.</span></span></label></div>
+    </div>
+    <div class="submit-row">
+      <button class="btn-big">Check my CV</button>
+      <p class="form-note">{{ limits.checks_per_day }} checks per day, shared with checks on the start page. No account, no cookies. Nothing is read or sent anywhere until you tick the box.</p>
+    </div>
+  </form>
+</section>
+{% endif %}
+{% endblock %}

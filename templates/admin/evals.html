@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui %}
+{% block title %}Evals{% endblock %}
+{% block body %}
+{% set kind_names = {'code': 'Code', 'prompt': 'Prompt', 'model': 'Model', 'feature': 'Feature', 'study': 'Measurement', 'state': 'Baseline'} %}
+<div class="page-head"><h1>Evals</h1>
+<p class="lede">An eval is a fixed set of test cases with known answers. The same set is run again after every change, so the result shows what the change did.</p>
+<p class="muted">A pass rate is only worth what its answers are worth: 90% on cases written to have one right answer and 90% agreement with another model are different claims. Each eval below says which one it is.</p></div>
+
+<nav class="page-index" aria-label="On this page"><strong>On this page</strong>
+  <ol><li><a href="#timeline-title">How the app's behaviour changed</a>: the benchmark over time</li>
+  <li><a href="#log-title">What changed, and what it did</a>: every change, newest last</li>
+  <li><a href="#kinds-title">What each eval asks</a>: one example each</li>
+  <li><a href="#matrix-title">Models by datasets</a>: pass rates</li>
+  {% if not demo_mode %}<li><a href="#run-title">Run an eval</a></li>{% endif %}
+  <li><a href="#results-title">Every run</a></li></ol></nav>
+
+<section class="form" aria-labelledby="timeline-title">
+  <div class="ribbon"><h2 id="timeline-title">How the app's behaviour changed</h2><p class="ribbon-note">The benchmark, one line per model</p></div>
+  {% set chart = chart_benchmark_timeline(timeline) if timeline else '' %}
+  {% if chart %}
+  <div class="form-body">
+    {{ chart }}
+    <p class="form-note">Cases passed out of {{ timeline.points[timeline.models[0]][timeline.states[0].id].planned }} on the same fictional benchmark, in each state of the app. A bar through a point is the spread of repeat runs. The vertical axis does not start at zero. One case is about 3 points, so a difference of one or two cases is noise.</p>
+    <div class="table-scroll"><table class="stack-sm"><caption class="sr">Cases passed in each state of the app, mean of the runs, and the change from the previous deployed state</caption>
+      <thead><tr><th scope="col">State of the app</th>{% for m in timeline.models %}<th scope="col" class="num">{{ m }}</th>{% endfor %}</tr></thead><tbody>
+      {% for s in timeline.states %}<tr><th scope="row">{{ s.label }}{% if not s.deployed %}<span class="sub">tried, not deployed</span>{% endif %}</th>
+        {% for m in timeline.models %}{% set p = timeline.points[m].get(s.id) %}<td class="num" data-th="{{ m }}">{% if p %}{{ '%.1f'|format(p.mean) }}{% if p.runs > 1 %}<span class="sub">{{ p.runs }} runs</span>{% endif %}{% if deltas[m].get(s.id) is not none %}<span class="sub">{{ '%+.1f'|format(deltas[m][s.id]) }}</span>{% endif %}{% else %}<span class="muted">not run</span>{% endif %}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>
+  </div>
+  {% else %}<p class="empty"><strong>No benchmark run yet.</strong> Run the benchmark below on a model. Each run records what it ran with, so a later change shows up here.</p>{% endif %}
+</section>
+
+<section class="form" aria-labelledby="log-title">
+  {% set state_ids = timeline.states|map(attribute='id')|list if timeline else [] %}
+  <div class="ribbon ribbon-pink"><h2 id="log-title">What changed, and what it did</h2><p class="ribbon-note">Oldest first</p></div>
+  <div class="form-body">
+  <p>Each entry says what changed in the app, or what was measured, when, and whether it went live. Only changes that affect the answers are listed. Open an entry to see why it was made, what was measured at the time and, where the benchmark ran on both sides of the change, how many cases each model passed.</p>
+  <p class="actions"><button type="button" class="quiet" data-toggle-all="#change-log">Open all entries</button></p>
+  <div class="changes" id="change-log">
+  {% for c in change_log %}
+    <details class="change">
+      <summary><span class="tag">{{ kind_names.get(c.kind, c.kind) }}</span> <span class="change-date">{{ c.date|day_short }}</span>{% if not c.deployed and c.kind != 'study' %} <span class="tag tag-solid">tried, not deployed</span>{% endif %}
+        <h3>{{ c.title }}</h3>
+        {% set ns = namespace(parts=[]) %}{% if c.state and c.state in state_ids %}{% for m in timeline.models %}{% if deltas[m].get(c.state) is not none %}{% set _ = ns.parts.append(m ~ ' ' ~ ('%+.1f'|format(deltas[m][c.state]))) %}{% endif %}{% endfor %}{% endif %}
+        {% if ns.parts %}<span class="change-delta">{{ ns.parts|join(', ') }} cases</span>{% endif %}</summary>
+      <div class="change-body">
+        <p>{{ c.text }}</p>
+        {% if c.measured %}<p class="change-measured"><strong>Measured.</strong> {{ c.measured }}</p>{% endif %}
+        {% if c.state and c.state in state_ids %}
+        <p class="change-measured"><strong>Benchmark, cases passed of {{ timeline.points[timeline.models[0]][c.state].planned if timeline.points[timeline.models[0]].get(c.state) else 36 }}.</strong>
+          {% for m in timeline.models %}{% set p = timeline.points[m].get(c.state) %}{% if p %}{{ m }} {{ '%.1f'|format(p.mean) }}{% if deltas[m].get(c.state) is not none %} ({{ '%+.1f'|format(deltas[m][c.state]) }} against the state before){% endif %}{% if not loop.last %}; {% endif %}{% endif %}{% endfor %}.</p>
+        {% endif %}
+        {% if repo_url and c.docs %}<p class="change-measured"><strong>Read more.</strong> {% for doc in c.docs %}<a href="{{ repo_url }}/blob/main/{{ doc }}">{{ doc }}</a>{% if not loop.last %}, {% endif %}{% endfor %}</p>{% endif %}
+      </div>
+    </details>
+  {% endfor %}
+  </div>
+  </div>
+</section>
+
+<section class="form" aria-labelledby="kinds-title">
+  <div class="ribbon"><h2 id="kinds-title">What each eval asks</h2><p class="ribbon-note">With one example each</p></div>
+  <div class="form-body">
+  {% for d in datasets %}{% set card = cards.get(d.name) %}
+    <details class="eval-card">
+      <summary><h3>{{ card.title if card else d.label }} <span class="tag">{{ d.kind }}</span> <span class="muted small">{{ d.n_cases }} cases</span></h3>
+        <span class="eval-asks">{% if card %}{{ card.question }}{% else %}{{ d.description }}{% endif %}</span></summary>
+      {% if card %}
+      <dl class="eval-example">{% for label, text in card.example %}<dt>{{ label }}</dt><dd>{{ text }}</dd>{% endfor %}</dl>
+      <p class="muted"><strong>Cannot tell you:</strong> {{ card.limit }}</p>
+      {% endif %}
+    </details>
+  {% endfor %}
+  </div>
+</section>
+
+<section class="form" aria-labelledby="matrix-title">
+  <div class="ribbon"><h2 id="matrix-title">Models by datasets</h2></div>
+  {% set mx = chart_eval_matrix(eval_runs) %}
+  {% if mx %}{{ mx }}{% else %}<p class="empty"><strong>No finished eval yet.</strong> This table will show, for each model and dataset, the share of cases passed. Run an eval below to fill the first cell.</p>{% endif %}
+</section>
+<section class="form" aria-labelledby="run-title">
+  <div class="ribbon ribbon-yellow"><h2 id="run-title">Run an eval</h2></div>
+  <div class="form-body">
+  {% if demo_mode %}<p class="empty"><strong>Running an eval is not available in the demo.</strong> It would spend model credit. The runs listed under "Every run" were made beforehand, on the same datasets.</p>
+  {% elif not datasets %}<p class="empty"><strong>No datasets are registered.</strong> A dataset is a list of cases with expected results. Add one in <code>evals/</code> and it appears here.</p>{% else %}
+  <form method="post" action="{{ url_for('admin.evals_run') }}" class="inline-form">{{ csrf_field() }}
+    <div class="ctl"><label for="ev-dataset">Dataset</label><select id="ev-dataset" name="dataset">{% for d in datasets %}<option value="{{ d.name }}">{{ d.label }} ({{ d.kind }}, {{ d.n_cases }} cases)</option>{% endfor %}</select></div>
+    <div class="ctl"><label for="ev-model">Model</label><select id="ev-model" name="backend">{% for m in models %}<option value="{{ m.id }}">{{ m.label }}</option>{% endfor %}</select></div>
+    <button>Run the eval</button></form>{% endif %}
+  </div>
+</section>
+<section class="form" aria-labelledby="results-title">
+  <div class="ribbon"><h2 id="results-title">Every run</h2></div>
+  {% if eval_runs %}
+  <div class="table-scroll"><table class="stack-sm"><thead><tr><th>Started</th><th>Dataset</th><th>Model</th><th class="num">Cases</th><th>Passed</th><th>Status</th></tr></thead><tbody>
+  {% for e in eval_runs %}<tr><td class="nowrap"><a href="{{ url_for('admin.eval_view', eval_run_id=e.id) }}">{{ e.created|clock }}</a></td><td data-th="Dataset">{{ e.dataset }}<span class="sub">{{ e.dataset_kind }}{% if e.as_of %}, as of {{ e.as_of }}{% endif %}</span></td><td data-th="Model">{{ ui.model(e.backend) }}</td><td class="num" data-th="Cases">{{ e.n_cases }}</td>
+  <td data-th="Passed">{% if e.summary.pass_rate is defined and e.summary.pass_rate is not none %}{{ (e.summary.pass_rate * 100)|pct }}{{ chart_bar(e.summary.pass_rate, 1, 'Cases passed') }}{% else %}<span class="muted">no result</span>{% endif %}</td><td>{{ ui.status(e.status) }}</td></tr>{% endfor %}</tbody></table></div>
+  {% else %}<p class="empty"><strong>No eval runs yet.</strong> Each run of a dataset on a model is listed here with its pass rate.</p>{% endif %}
+</section>
+{% endblock %}

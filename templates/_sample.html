@@ -1,0 +1,34 @@
+{% import "_ui.html" as ui %}
+{% if fold %}<details class="form sample stamps-land fold-box">
+  <summary class="ribbon ribbon-pink"><h2 id="sample-title">What a report looks like</h2><p class="ribbon-note">Made-up example: fictional candidate, fictional posting</p></summary>
+{% else %}<section class="form sample stamps-land" aria-labelledby="sample-title">
+  <div class="ribbon ribbon-pink"><h2 id="sample-title">What a report looks like</h2><p class="ribbon-note">Made-up example: fictional candidate, fictional posting</p></div>
+{% endif %}
+  <div class="fields">
+    <div class="field f-7"><span class="field-label">Posting</span><p class="field-value">{{ sample.role }}</p><p class="field-sub">{{ sample.company }}</p></div>
+    <div class="field f-5"><span class="field-label">Checked against</span><p class="field-value">{{ sample.candidate }}</p></div>
+    <div class="field f-5 field-fill"><span class="field-label">Result</span><p class="field-big">{{ sample.score }}% match</p>{{ chart_meter(sample.score, 'Match') }}</div>
+    <div class="field f-7"><span class="field-label">Minimum requirements</span><p class="field-value">{{ sample.gap[1] - sample.gap[0] }} of {{ sample.gap[1] }} minimum requirements are met or partly met</p><p class="field-sub">A requirement the CV does not show is marked “Not shown”. That does not mean the person lacks it.</p></div>
+  </div>
+  <div class="reqs-head" aria-hidden="true"><span></span><span>The posting asks for</span><span>Verdict</span><span></span></div>
+  {% set ns = namespace(n=0) %}
+  {% set n_min = sample['items']|selectattr('kind', 'equalto', 'minimum')|list|length %}
+  {% for is_min, key, title, note, count in [(true, 'min', 'Minimum requirements', 'What the posting says it needs', n_min),
+                                              (false, 'nice', 'Nice to have', 'Preferred, a plus, or an example', sample['items']|length - n_min)] %}
+  {% if count %}
+  <div class="reqs-group reqs-group-{{ key }}">
+    <div class="reqs-group-head"><h3>{{ title }}</h3><p>{{ note }}</p></div>
+  <ol class="reqs">
+    {% for it in sample['items'] %}{% if (it.kind == 'minimum') == is_min %}{% set ns.n = ns.n + 1 %}
+    <li class="req">
+      <span class="req-n">{{ ns.n }}</span>
+      <div><p class="req-text">{{ it.text }}</p></div>
+      <div class="req-verdict">{{ ui.stamp(it.verdict) }}</div>
+      <div class="req-evidence">{% if it.evidence %}<q class="cv-line">{{ it.evidence }}</q><span class="cv-src">CV, {{ it.section }}</span>{% endif %}{% if it.verdict != 'met' or not it.evidence %}<p>{{ it.reason }}</p>{% endif %}</div>
+    </li>
+    {% endif %}{% endfor %}
+  </ol>
+  </div>
+  {% endif %}
+  {% endfor %}
+{% if fold %}</details>{% else %}</section>{% endif %}

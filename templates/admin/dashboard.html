@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui %}
+{% block title %}Dashboard{% endblock %}
+{% block body %}
+{% set kinds = eval_kinds() %}
+<div class="page-head">
+  <h1>Dashboard</h1>
+  {% if public_ok %}<p class="muted">Checks for visitors are <strong>on</strong>, answered by {{ ui.model(public_model) }}.</p>{% endif %}
+</div>
+{% if not public_ok %}<div class="notice notice-error"><p><strong>To do: checks for visitors are off.</strong> {{ public_why }}</p><p>{% if public_fix == 'settings' %}<a href="{{ url_for('admin.settings_page') }}#pubcv-title">Go to the public CV upload</a>{% else %}<a href="{{ url_for('admin.models') }}">Open the models page</a>{% endif %}</p></div>{% endif %}
+
+<div class="hero-dash">
+  <div class="stack">
+  <section class="form" id="both-ways-chart" aria-labelledby="bw-title">
+    <div class="ribbon ribbon-pink"><h2 id="bw-title">Both ways</h2><p class="ribbon-note">Does the CV fit the job, and does the job fit your terms?</p></div>
+    <div class="form-body both-ways">
+      {% set q = chart_quadrant(quadrant) %}
+      {% if q %}
+      {{ q }}
+      <ul class="legend"><li><span class="key key-dot"></span>A posting. Select it to open the run.</li><li><span class="key key-dot key-cross"></span>Breaks one of your dealbreakers</li></ul>
+      <details class="more"><summary>The same numbers as a list</summary>
+      <ul class="dot-list">{% for p in quadrant %}<li><a href="{{ url_for('admin.run_view', run_id=p.run_id) }}">{{ p.label }}</a><span class="num">fit {{ p.x|pct }}</span><span class="num">terms {{ p.y|pct }}</span>{% if p.overall %}<span class="note">{{ p.overall }}</span>{% endif %}{% if p.conflicts %}<span class="note">{{ p.conflicts }} dealbreaker conflict{{ '' if p.conflicts == 1 else 's' }}</span>{% endif %}</li>{% endfor %}</ul></details>
+      {% else %}
+      <p class="empty"><strong>No posting has both scores yet.</strong> This chart places each posting by two scores: how well the CV fits it, and how well it fits your terms. Tick “Also check the posting against my terms” when you <a href="{{ url_for('admin.new') }}">start a check</a>.</p>
+      {% endif %}
+    </div>
+  </section>
+    <section class="form" id="kpis" aria-labelledby="kpi-title">
+      <div class="ribbon"><h2 id="kpi-title">Since the first check</h2></div>
+      <div class="fields">
+        <div class="field f-4 f-half"><span class="field-label">Checks</span><p class="field-mid">{{ kpi.runs|num }}</p><p class="field-sub">{{ kpi.public_runs|num }} from visitors</p></div>
+        <div class="field f-4 f-half"><span class="field-label">Model calls traced</span><p class="field-mid">{{ kpi.traces|num }}</p><p class="field-sub">{{ kpi.errors_24h|num }} error{{ '' if kpi.errors_24h == 1 else 's' }} in the last 24 hours</p></div>
+        <div class="field f-4 f-half"><span class="field-label">Time per job, median</span><p class="field-mid">{{ kpi.latency_p50|secs }}</p><p class="field-sub">19 in 20 finish within {{ kpi.latency_p95|secs }}</p></div>
+        <div class="field f-4 f-half"><span class="field-label">Spend since the start</span><p class="field-mid">{{ kpi.spend_total|usd }}</p></div>
+        <div class="field f-4 f-half"><span class="field-label">Chat questions</span><p class="field-mid">{{ kpi.chat_questions|num }}</p></div>
+        <div class="field f-4 f-half"><span class="field-label">Letters drafted</span><p class="field-mid">{{ kpi.letters|num }}</p></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="stack">
+    <section class="form" id="spend" aria-labelledby="spend-title">
+      <div class="ribbon ribbon-yellow"><h2 id="spend-title">Spend against the caps</h2><p class="ribbon-note"><a href="{{ url_for('admin.settings_page') }}">Change the caps</a></p></div>
+      <div class="fields">
+        <div class="field field-fill"><span class="field-label">Spend this month</span>
+          <p class="field-big">{{ '$%.2f'|format(spend.month) }} <span class="field-of">of {{ '$%.2f'|format(spend.month_cap) }}</span></p>
+          {{ chart_meter((spend.month / spend.month_cap * 100) if spend.month_cap else 0, 'Share of the monthly cap used') }}
+          <p class="field-sub">{% if spend.month_cap and spend.month >= spend.month_cap %}The cap is reached. Checks that cost money are paused until next month, or until you raise the cap.{% elif not spend.month %}Nothing spent yet this month.{% else %}{{ '$%.2f'|format(spend.month_cap - spend.month) }} left before paid checks pause.{% endif %} Billed model calls only. The local claude command is not counted.</p></div>
+        <div class="field f-4 f-half"><span class="field-label">Today, all billed calls</span><p class="field-mid">{{ '$%.2f'|format(spend.day) }}</p></div>
+        <div class="field f-4 f-half"><span class="field-label">Today, visitors</span><p class="field-mid">{{ '$%.2f'|format(spend.public_day) }}</p>{{ chart_bar(spend.public_day, spend.day_cap, 'Share of the daily cap for visitors') }}<p class="field-sub">cap {{ '$%.2f'|format(spend.day_cap) }} a day</p></div>
+        <div class="field f-4"><span class="field-label">Most one report may spend</span><p class="field-mid">{{ '$%.2f'|format(spend.session_cap) }}</p><p class="field-sub">with its chat and letters</p></div>
+      </div>
+    </section>
+    <section class="form" id="trend" aria-labelledby="trend-title">
+      <div class="ribbon"><h2 id="trend-title">Last 14 days</h2><p class="ribbon-note">Each strip has its own scale</p></div>
+      <div class="form-body">{{ chart_trend(trend) }}
+        <details class="more"><summary>The same numbers as a table</summary>
+        <div class="table-scroll"><table><thead><tr><th>Day</th><th class="num">Checks</th><th class="num">Model requests</th><th class="num">Spend</th></tr></thead><tbody>{% for d in trend %}<tr><td>{{ d.day|day_short }}</td><td class="num">{{ d.runs }}</td><td class="num">{{ d.requests }}</td><td class="num">{{ d.spend|usd }}</td></tr>{% endfor %}</tbody></table></div></details>
+      </div>
+    </section>
+  </div>
+</div>
+
+<section class="form" id="models" aria-labelledby="models-title">
+  <div class="ribbon"><h2 id="models-title">Models</h2><p class="ribbon-note"><a href="{{ url_for('admin.models') }}">Catalog and roles</a>, <a href="{{ url_for('admin.evals') }}">evals</a></p></div>
+  {% if models %}
+  <div class="table-scroll"><table><thead><tr><th>Model</th><th class="num">Reports</th><th class="num">Time, median / slow</th><th class="num">Tokens in / out</th><th class="num">Cost</th><th>Agrees with you</th><th>Eval cases passed, by kind of dataset</th><th>Arena</th></tr></thead><tbody>
+  {% for m in models %}<tr><th scope="row">{{ ui.model(m.backend) }}</th>
+    <td class="num">{{ m.done }}{% if m.failed %}<span class="sub">{{ m.failed }} failed</span>{% endif %}</td>
+    <td class="num">{{ m.p50|secs }} / {{ m.p95|secs }}</td><td class="num">{{ m.tokens_in|num }} / {{ m.tokens_out|num }}</td><td class="num">{{ m.cost|usd }}</td>
+    <td>{% if m.agreement is not none %}{{ (m.agreement * 100)|pct }}{{ chart_bar(m.agreement, 1, 'Verdicts you left unchanged') }}<span class="sub">of {{ m.n_items }} verdicts reviewed</span>{% else %}<span class="muted">none reviewed</span>{% endif %}</td>
+    <td>{% for k, rate, n in kinds.get(m.backend, []) %}<span class="kind-row"><span>{{ k }}</span><span class="num">{{ (rate * 100)|pct }}</span></span>{% else %}<span class="muted">not run</span>{% endfor %}</td>
+    <td class="nowrap">{% if m.arena %}{{ m.arena.wins }} won, {{ m.arena.losses }} lost{% if m.arena.ties %}, {{ m.arena.ties }} tied{% endif %}{% else %}<span class="muted">no votes</span>{% endif %}</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% else %}<p class="empty"><strong>No model has produced a report yet.</strong> This table compares the models you have run: score, time, cost and how often you agreed. <a href="{{ url_for('admin.new') }}">Start a check</a> to fill it.</p>{% endif %}
+</section>
+
+<div class="split split-even">
+<section class="form" aria-labelledby="runs-title">
+  <div class="ribbon"><h2 id="runs-title">Recent runs</h2><p class="ribbon-note"><a href="{{ url_for('admin.runs') }}">All runs</a></p></div>
+  {% if recent_runs %}
+  <div class="table-scroll"><table><thead><tr><th>Posting</th><th class="num">Fit</th><th class="num">Terms</th><th>Decision</th></tr></thead><tbody>
+  {% for r in recent_runs %}<tr><td><a href="{{ url_for('admin.run_view', run_id=r.id) }}">{{ r.company or r.title or 'Run ' ~ r.id }}</a>{% if r.source == 'public' %} <span class="tag tag-soft">visitor</span>{% endif %}<span class="sub">{{ r.created|day_short }}{% if r.company and r.title %}, {{ r.title }}{% endif %}</span></td>
+    <td class="num">{{ r.scores.fit|pct }}</td><td class="num">{{ r.scores.terms|pct }}</td><td>{{ r.human_verdict or '' }}</td></tr>{% endfor %}</tbody></table></div>
+  {% else %}<p class="empty"><strong>No runs yet.</strong> A run is one posting checked by one or more models. <a href="{{ url_for('admin.new') }}">Start the first check.</a></p>{% endif %}
+  {% if not public_runs %}<p class="empty">No visitor has checked a posting yet.</p>{% endif %}
+</section>
+<section class="form" aria-labelledby="traces-title">
+  <div class="ribbon"><h2 id="traces-title">Recent traces</h2><p class="ribbon-note"><a href="{{ url_for('admin.traces') }}">All traces</a></p></div>
+  {% if recent_traces %}
+  <div class="table-scroll"><table><thead><tr><th>Started</th><th>What</th><th class="num">Time</th><th class="num">Cost</th><th>Status</th></tr></thead><tbody>
+  {% for t in recent_traces %}<tr><td class="nowrap"><a href="{{ url_for('admin.trace', trace_id=t.trace_id) }}">{{ t.started|clock }}</a></td><td>{{ t.name }}<span class="sub">{{ t.model|short_model }}, {{ (t.input_tokens + t.output_tokens)|num }} tokens</span></td><td class="num">{{ t.duration_ms|ms }}</td><td class="num">{{ t.cost_usd|usd }}</td><td>{{ ui.status(t.status) }}</td></tr>{% endfor %}</tbody></table></div>
+  {% else %}<p class="empty"><strong>No traces yet.</strong> A trace records one job from start to end: each prompt, answer, time and cost. They appear when a model runs.</p>{% endif %}
+</section>
+</div>
+{% endblock %}

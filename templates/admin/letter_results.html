@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Letter opening results{% endblock %}
+{% block body %}
+<div class="page-head"><h1>Letter opening results</h1><p class="muted">{{ votes }} comparison{{ '' if votes == 1 else 's' }} so far, from your blind votes.</p></div>
+<section class="form" aria-labelledby="res-title">
+  <div class="ribbon ribbon-yellow"><h2 id="res-title">Which opening was picked</h2></div>
+  <div class="table-scroll"><table><thead><tr><th>Opening</th><th class="num">Picked</th><th class="num">Lost</th><th class="num">Tied</th><th class="num">Compared</th><th class="num">Drafts</th><th class="num">Passed the code checks</th><th class="num">Words, mean</th></tr></thead><tbody>
+  {% for key, label in labels.items() %}{% set s = stats[key] %}<tr><th scope="row">{{ label }}</th><td class="num">{{ s.picked }}</td><td class="num">{{ s.lost }}</td><td class="num">{{ s.tied }}</td><td class="num">{{ s.compared }}</td><td class="num">{{ s.drafts }}</td><td class="num">{{ s.passed_checks }} of {{ s.drafts }}</td><td class="num">{{ s.mean_words if s.mean_words is not none else '' }}</td></tr>{% endfor %}
+  </tbody></table></div>
+  <div class="form-body"><p class="form-note">Read this as a hint, not a rule: a handful of comparisons by one reader (you) cannot settle it. The people who decide are the readers who see such letters for a living, so show the pairs to two or three of them before you change the default. Settle the rule before you look: the opening picked most often wins, and a tie keeps proof first.</p></div>
+</section>
+{% endblock %}

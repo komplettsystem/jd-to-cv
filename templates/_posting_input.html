@@ -1,0 +1,12 @@
+{# The posting, as the forms ask for it: the link first. Only after a posting problem (the page could not be read, a bad file, nothing
+   given) the form also offers a PDF upload, and under it, last, the pasted text. #}
+<div class="field field-link"><label class="field-label" for="posting_url">Link to the job posting</label>
+  <input id="posting_url" name="posting_url" type="url" inputmode="url" autocomplete="off" maxlength="2000" placeholder="https://" value="{{ form.get('posting_url', '') }}">
+  <p class="field-sub">We read the page once to get its text and do not keep the link.</p></div>
+{% if fallback or form.get('posting_text') %}
+<div class="field"><label class="field-label" for="posting_file">Upload the posting as a PDF, .txt or .md file, up to {{ max_file_mb }} MB</label>
+  <input id="posting_file" name="posting_file" type="file" accept=".pdf,.txt,.md,application/pdf,text/plain,text/markdown">
+  <p class="field-sub">Open the posting in your browser, print it and choose “Save as PDF”. Only the text is read; the file itself is not kept. A scanned PDF has no text to read.</p></div>
+<details class="field paste-box" {% if form.get('posting_text') %}open{% endif %}><summary class="field-label">No PDF? Paste the posting text instead, up to {{ "{:,}".format(limits.posting_max_chars) }} characters</summary>
+  <textarea id="posting_text" name="posting_text" maxlength="{{ limits.posting_max_chars }}">{{ form.get('posting_text', '') }}</textarea></details>
+{% endif %}

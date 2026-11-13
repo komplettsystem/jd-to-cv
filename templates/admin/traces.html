@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% import "_ui.html" as ui %}
+{% block title %}Traces{% endblock %}
+{% block body %}
+<div class="page-head"><h1>Traces</h1><p class="muted">A trace records one job from start to end: every prompt, answer and tool call, with its time and cost. They hold full prompts, including the CV and visitors' postings, so keep them private.</p></div>
+<section class="form" aria-label="Traces">
+<div class="form-body">
+<form method="get" class="inline-form">
+  <div class="ctl"><label for="f-type">Kind</label><select id="f-type" name="type"><option value="">All kinds</option>{% for t in types %}<option {% if filters.type == t %}selected{% endif %}>{{ t }}</option>{% endfor %}</select></div>
+  <div class="ctl"><label for="f-model">Model</label><select id="f-model" name="model"><option value="">All models</option>{% for m in model_names %}<option {% if filters.model == m %}selected{% endif %}>{{ m }}</option>{% endfor %}</select></div>
+  <div class="ctl"><label for="f-status">Status</label><select id="f-status" name="status"><option value="">Any status</option><option value="error" {% if filters.status == 'error' %}selected{% endif %}>Error</option><option value="ok" {% if filters.status == 'ok' %}selected{% endif %}>OK</option></select></div>
+  <button class="quiet">Show matching traces</button>{% if filters.type or filters.model or filters.status %}<a href="{{ url_for('admin.traces') }}">Show all</a>{% endif %}</form>
+</div>
+{% if traces %}
+<div class="table-scroll"><table><thead><tr><th>Started</th><th>What</th><th>About</th><th>Model</th><th class="num">Requests</th><th class="num">Tool calls</th><th class="num">Time</th><th class="num">Tokens in / out</th><th class="num">Cost</th><th>Status</th></tr></thead><tbody>
+{% for t in traces %}<tr><td class="nowrap"><a href="{{ url_for('admin.trace', trace_id=t.trace_id) }}" aria-label="Trace {{ t.trace_id }}, {{ t.started|clock }}">{{ t.started|clock }}</a></td><td>{{ t.name }}{% if t.public %} <span class="tag tag-soft">visitor</span>{% endif %}</td><td class="nowrap">{{ t.subject_type }} {{ t.subject_id }}</td><td>{{ t.model|short_model }}</td><td class="num">{{ t.model_requests }}</td><td class="num">{{ t.tool_calls }}</td><td class="num">{{ t.duration_ms|ms }}</td><td class="num">{{ t.input_tokens|num }} / {{ t.output_tokens|num }}</td><td class="num">{{ t.cost_usd|usd }}</td><td>{{ ui.status(t.status) }}</td></tr>{% endfor %}</tbody></table></div>
+{% elif filters.type or filters.model or filters.status %}<p class="empty"><strong>No trace matches these filters.</strong> <a href="{{ url_for('admin.traces') }}">Show all traces</a></p>
+{% else %}<p class="empty"><strong>No traces yet.</strong> They appear when a model runs. <a href="{{ url_for('admin.new') }}">Start a check</a> to record the first one.</p>{% endif %}
+</section>
+{% endblock %}

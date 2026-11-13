@@ -1,0 +1,1691 @@
+[
+ {
+  "state": "start",
+  "model": "claude-haiku-5.5",
+  "run": 0,
+  "status": "done",
+  "passed": 26,
+  "planned": 36,
+  "over_credit": 0.0,
+  "under_credit": 0.2095,
+  "cost_usd": 0.0151,
+  "by_group": {
+   "paraphrase": [
+    0,
+    6
+   ],
+   "neighbour": [
+    6,
+    6
+   ],
+   "numbers": [
+    4,
+    4
+   ],
+   "degree": [
+    3,
+    4
+   ],
+   "absence": [
+    3,
+    3
+   ],
+   "hostile": [
+    1,
+    1
+   ],
+   "kinds": [
+    2,
+    3
+   ],
+   "evidence": [
+    2,
+    3
+   ],
+   "overcredit": [
+    5,
+    6
+   ]
+  },
+  "failed": [
+   "churn-and-pricing-tests",
+   "executive-and-mentoring",
+   "budget-and-vendors",
+   "speaking-and-writing",
+   "roadmap-and-design",
+   "privacy-work",
+   "degree-or-equivalent-long-career",
+   "a-plus-in-prose",
+   "cost-reduction-no-shared-words",
+   "course-not-professional"
+  ],
+  "fingerprint": {
+   "model": "anthropic/claude-haiku-5.5",
+   "effort": "medium",
+   "output_mode": "tool",
+   "max_tokens": 24000,
+   "whole_cv_chars": 0,
+   "equivalent_experience_lines": false,
+   "judge_rules": "07a56ad2",
+   "extract_rules": "375f46eb",
+   "dataset": "176b6b91",
+   "code": "dev"
+  }
+ },
+ {
+  "state": "start",
+  "model": "deepseek-v4.1-flash-1017",
+  "run": 0,
+  "status": "done",
+  "passed": 27,
+  "planned": 36,
+  "over_credit": 0.0,
+  "under_credit": 0.181,
+  "cost_usd": 0.0211,
+  "by_group": {
+   "paraphrase": [
+    0,
+    6
+   ],
+   "neighbour": [
+    6,
+    6
+   ],
+   "numbers": [
+    4,
+    4
+   ],
+   "degree": [
+    3,
+    4
+   ],
+   "absence": [
+    3,
+    3
+   ],
+   "hostile": [
+    1,
+    1
+   ],
+   "kinds": [
+    2,
+    3
+   ],
+   "evidence": [
+    2,
+    3
+   ],
+   "overcredit": [
+    6,
+    6
+   ]
+  },
+  "failed": [
+   "churn-and-pricing-tests",
+   "executive-and-mentoring",
+   "budget-and-vendors",
+   "speaking-and-writing",
+   "roadmap-and-design",
+   "privacy-work",
+   "degree-or-equivalent-long-career",
+   "headings-bonus-points",
+   "cost-reduction-no-shared-words"
+  ],
+  "fingerprint": {
+   "model": "deepseek/deepseek-v4.1-flash-1017",
+   "effort": "high",
+   "output_mode": "tool",
+   "max_tokens": 24000,
+   "whole_cv_chars": 0,
+   "equivalent_experience_lines": false,
+   "judge_rules": "07a56ad2",
+   "extract_rules": "375f46eb",
+   "dataset": "176b6b91",
+   "code": "dev"
+  }
+ },
+ {
+  "state": "start",
+  "model": "gpt-6.1-terra",
+  "run": 0,
+  "status": "done",
+  "passed": 27,
+  "planned": 36,
+  "over_credit": 0.0,
+  "under_credit": 0.1714,
+  "cost_usd": 0.0714,
+  "by_group": {
+   "paraphrase": [
+    0,
+    6
+   ],
+   "neighbour": [
+    6,
+    6
+   ],
+   "numbers": [
+    4,
+    4
+   ],
+   "degree": [
+    3,
+    4
+   ],
+   "absence": [
+    3,
+    3
+   ],
+   "hostile": [
+    1,
+    1
+   ],
+   "kinds": [
+    2,
+    3
+   ],
+   "evidence": [
+    2,
+    3
+   ],
+   "overcredit": [
+    6,
+    6
+   ]
+  },
+  "failed": [
+   "churn-and-pricing-tests",
+   "executive-and-mentoring",
+   "budget-and-vendors",
+   "speaking-and-writing",
+   "roadmap-and-design",
+   "privacy-work",
+   "degree-or-equivalent-long-career",
+   "a-plus-in-prose",
+   "cost-reduction-no-shared-words"
+  ],
+  "fingerprint": {
+   "model": "openai/gpt-6.1-terra",
+   "effort": "medium",
+   "output_mode": "tool",
+   "max_tokens": 24000,
+   "whole_cv_chars": 0,
+   "equivalent_experience_lines": false,
+   "judge_rules": "07a56ad2",
+   "extract_rules": "375f46eb",
+   "dataset": "176b6b91",
+   "code": "dev"
+  }
+ },
+ {
+  "state": "start",
+  "model": "claude-haiku-5.5",
+  "run": 1,
+  "status": "done",
+  "passed": 27,
+  "planned": 36,
+  "over_credit": 0.0,
+  "under_credit": 0.2,
+  "cost_usd": 0.0155,
+  "by_group": {
+   "paraphrase": [
+    0,
+    6
+   ],
+   "neighbour": [
+    6,
+    6
+   ],
+   "numbers": [
+    4,
+    4
+   ],
+   "degree": [
+    3,
+    4
+   ],
+   "absence": [
+    3,
+    3
+   ],
+   "hostile": [
+    1,
+    1
+   ],
+   "kinds": [
+    3,
+    3
+   ],
+   "evidence": [
+    2,
+    3
+   ],
+   "overcredit": [
+    5,
+    6
+   ]
+  },
+  "failed": [
+   "churn-and-pricing-tests",
+   "executive-and-mentoring",
+   "budget-and-vendors",
+   "speaking-and-writing",
+   "roadmap-and-design",
+   "privacy-work",
+   "degree-or-equivalent-long-career",
+   "cost-reduction-no-shared-words",
+   "course-not-professional"
+  ],
+  "fingerprint": {
+   "model": "anthropic/claude-haiku-5.5",
+   "effort": "medium",
+   "output_mode": "tool",
+   "max_tokens": 24000,
+   "whole_cv_chars": 0,
+   "equivalent_experience_lines": false,
+   "judge_rules": "07a56ad2",
+   "extract_rules": "375f46eb",
+   "dataset": "176b6b91",
+   "code": "dev"
+  }
+ },
+ {
+  "state": "start",
+  "model": "deepseek-v4.1-flash-1017",
+  "run": 1,
+  "status": "done",
+  "passed": 28,
+  "planned": 36,
+  "over_credit": 0.0,
+  "under_credit": 0.1714,
+  "cost_usd": 0.0202,
+  "by_group": {
+   "paraphrase": [
+    0,
+    6
+   ],
+   "neighbour": [
+    6,
+    6
+   ],
+   "numbers": [
+    4,
+    4
+   ],
+   "degree": [
+    3,
+    4
+   ],
+   "absence": [
+    3,
+    3
+   ],
+   "hostile": [
+    1,
+    1
+   ],
+   "kinds": [
+    3,
+    3
+   ],
+   "evidence": [
+    2,
+    3
+   ],
+   "overcredit": [
+    6,
+    6
+   ]
+  },
+  "failed": [
+   "churn-and-pricing-tests",
+   "executive-and-mentoring",
+   "budget-and-vendors",
+   "speaking-and-writing",
+   "roadmap-and-design",
+   "privacy-work",
+   "degree-or-equivalent-long-career",
+   "cost-reduction-no-shared-words"
+  ],
+  "fingerprint": {
+   "model": "deepseek/deepseek-v4.1-flash-1017",
+   "effort": "high",
+   "output_mode": "tool",
+   "max_tokens": 24000,
+   "whole_cv_chars": 0,
+   "equivalent_experience_lines": false,
+   "judge_rules": "07a56ad2",
+   "extract_rules": "375f46eb",
+   "dataset": "176b6b91",
+   "code": "dev"
+  }
+ },
+ {
+  "state": "start",
+  "model": "gpt-6.1-terra",
+  "run": 1,
+  "status": "done",
+  "passed": 27,
+  "planned": 36,
+  "over_credit": 0.0,
+  "under_credit": 0.1714,
+  "cost_usd": 0.0737,
+  "by_group": {
+   "paraphrase": [
+    0,
+    6
+   ],
+   "neighbour": [
+    6,
+    6
+   ],
+   "numbers": [
+    4,
+    4
+   ],
+   "degree": [
+    3,
+    4
+   ],
+   "absence": [
+    3,
+    3
+   ],
+   "hostile": [
+    1,
+    1
+   ],
+   "kinds": [
+    2,
+    3
+   ],
+   "evidence": [
+    2,
+    3
+   ],
+   "overcredit": [
+    6,
+    6
+   ]
+  },
+  "failed": [
+   "churn-and-pricing-tests",
+   "executive-and-mentoring",
+   "budget-and-vendors",
+   "speaking-and-writing",
+   "roadmap-and-design",
+   "privacy-work",
+   "degree-or-equivalent-long-career",
+   "a-plus-in-prose",
+   "cost-reduction-no-shared-words"
+  ],
+  "fingerprint": {
+   "model": "openai/gpt-6.1-terra",
+   "effort": "medium",
+   "output_mode": "tool",
+   "max_tokens": 24000,
+   "whole_cv_chars": 0,
+   "equivalent_experience_lines": false,
+   "judge_rules": "07a56ad2",
+   "extract_rules": "375f46eb",
+   "dataset": "176b6b91",
+   "code": "dev"
+  }
+ },
+ {
+  "state": "tightened",
+  "model": "claude-haiku-5.5",
+  "run": 0,
+  "status": "done",
+  "passed": 27,
+  "planned": 36,
+  "over_credit": 0.0,
+  "under_credit": 0.181,
+  "cost_usd": 0.0149,
+  "by_group": {
+   "paraphrase": [
+    0,
+    6
+   ],
+   "neighbour": [
+    6,
+    6
+   ],
+   "numbers": [
+    4,
+    4
+   ],
+   "degree": [
+    3,
+    4
+   ],
+   "absence": [
+    3,
+    3
+   ],
+   "hostile": [
+    1,
+    1
+   ],
+   "kinds": [
+    2,
+    3
+   ],
+   "evidence": [
+    2,
+    3
+   ],
+   "overcredit": [
+    6,
+    6
+   ]
+  },
+  "failed": [
+   "churn-and-pricing-tests",
+   "executive-and-mentoring",
+   "budget-and-vendors",
+   "speaking-and-writing",
+   "roadmap-and-design",
+   "privacy-work",
+   "degree-or-equivalent-long-career",
+   "a-plus-in-prose",
+   "cost-reduction-no-shared-words"
+  ],
+  "fingerprint": {
+   "model": "anthropic/claude-haiku-5.5",
+   "effort": "medium",
+   "output_mode": "tool",
+   "max_tokens": 24000,
+   "whole_cv_chars": 0,
+   "equivalent_experience_lines": false,
+   "judge_rules": "a39a3606",
+   "extract_rules": "375f46eb",
+   "dataset": "176b6b91",
+   "code": "dev"
+  }
+ },
+ {
+  "state": "tightened",
+  "model": "deepseek-v4.1-flash-1017",
+  "run": 0,
+  "status": "done",
+  "passed": 26,
+  "planned": 36,
+  "over_credit": 0.0,
+  "under_credit": 0.2286,
+  "cost_usd": 0.0213,
+  "by_group": {
+   "paraphrase": [
+    0,
+    6
+   ],
+   "neighbour": [
+    6,
+    6
+   ],
+   "numbers": [
+    4,
+    4
+   ],
+   "degree": [
+    3,
+    4
+   ],
+   "absence": [
+    2,
+    3
+   ],
+   "hostile": [
+    1,
+    1
+   ],
+   "kinds": [
+    3,
+    3
+   ],
+   "evidence": [
+    2,
+    3
+   ],
+   "overcredit": [
+    5,
+    6
+   ]
+  },
+  "failed": [
+   "churn-and-pricing-tests",
+   "executive-and-mentoring",
+   "budget-and-vendors",
+   "speaking-and-writing",
+   "roadmap-and-design",
+   "privacy-work",
+   "degree-or-equivalent-long-career",
+   "keyword-with-negation",
+   "cost-reduction-no-shared-words",
+   "course-not-professional"
+  ],
+  "fingerprint": {
+   "model": "deepseek/deepseek-v4.1-flash-1017",
+   "effort": "high",
+   "output_mode": "tool",
+   "max_tokens": 24000,
+   "whole_cv_chars": 0,
+   "equivalent_experience_lines": false,
+   "judge_rules": "a39a3606",
+   "extract_rules": "375f46eb",
+   "dataset": "176b6b91",
+   "code": "dev"
+  }
+ },
+ {
+  "state": "tightened",
+  "model": "gpt-6.1-terra",
+  "run": 0,
+  "status": "done",
+  "passed": 27,
+  "planned": 36,
+  "over_credit": 0.0,
+  "under_credit": 0.1714,
+  "cost_usd": 0.0723,
+  "by_group": {
+   "paraphrase": [
+    0,
+    6
+   ],
+   "neighbour": [
+    6,
+    6
+   ],
+   "numbers": [
+    4,
+    4
+   ],
+   "degree": [
+    3,
+    4
+   ],
+   "absence": [
+    3,
+    3
+   ],
+   "hostile": [
+    1,
+    1
+   ],
+   "kinds": [
+    2,
+    3
+   ],
+   "evidence": [
+    2,
+    3
+   ],
+   "overcredit": [
+    6,
+    6
+   ]
+  },
+  "failed": [
+   "churn-and-pricing-tests",
+   "executive-and-mentoring",
+   "budget-and-vendors",
+   "speaking-and-writing",
+   "roadmap-and-design",
+   "privacy-work",
+   "degree-or-equivalent-long-career",
+   "a-plus-in-prose",
+   "cost-reduction-no-shared-words"
+  ],
+  "fingerprint": {
+   "model": "openai/gpt-6.1-terra",
+   "effort": "medium",
+   "output_mode": "tool",
+   "max_tokens": 24000,
+   "whole_cv_chars": 0,
+   "equivalent_experience_lines": false,
+   "judge_rules": "a39a3606",
+   "extract_rules": "375f46eb",
+   "dataset": "176b6b91",
+   "code": "dev"
+  }
+ },
+ {
+  "state": "tightened",
+  "model": "claude-haiku-5.5",
+  "run": 1,
+  "status": "done",
+  "passed": 27,
+  "planned": 36,
+  "over_credit": 0.0,
+  "under_credit": 0.181,
+  "cost_usd": 0.0149,
+  "by_group": {
+   "paraphrase": [
+    0,
+    6
+   ],
+   "neighbour": [
+    6,
+    6
+   ],
+   "numbers": [
+    4,
+    4
+   ],
+   "degree": [
+    3,
+    4
+   ],
+   "absence": [
+    3,
+    3
+   ],
+   "hostile": [
+    1,
+    1
+   ],
+   "kinds": [
+    2,
+    3
+   ],
+   "evidence": [
+    2,
+    3
+   ],
+   "overcredit": [
+    6,
+    6
+   ]
+  },
+  "failed": [
+   "churn-and-pricing-tests",
+   "executive-and-mentoring",
+   "budget-and-vendors",
+   "speaking-and-writing",
+   "roadmap-and-design",
+   "privacy-work",
+   "degree-or-equivalent-long-career",
+   "a-plus-in-prose",
+   "cost-reduction-no-shared-words"
+  ],
+  "fingerprint": {
+   "model": "anthropic/claude-haiku-5.5",
+   "effort": "medium",
+   "output_mode": "tool",
+   "max_tokens": 24000,
+   "whole_cv_chars": 0,
+   "equivalent_experience_lines": false,
+   "judge_rules": "a39a3606",
+   "extract_rules": "375f46eb",
+   "dataset": "176b6b91",
+   "code": "dev"
+  }
+ },
+ {
+  "state": "tightened",
+  "model": "deepseek-v4.1-flash-1017",
+  "run": 1,
+  "status": "done",
+  "passed": 27,
+  "planned": 36,
+  "over_credit": 0.0,
+  "under_credit": 0.2,
+  "cost_usd": 0.0202,
+  "by_group": {
+   "paraphrase": [
+    0,
+    6
+   ],
+   "neighbour": [
+    6,
+    6
+   ],
+   "numbers": [
+    4,
+    4
+   ],
+   "degree": [
+    3,
+    4
+   ],
+   "absence": [
+    3,
+    3
+   ],
+   "hostile": [
+    1,
+    1
+   ],
+   "kinds": [
+    3,
+    3
+   ],
+   "evidence": [
+    2,
+    3
+   ],
+   "overcredit": [
+    5,
+    6
+   ]
+  },
+  "failed": [
+   "churn-and-pricing-tests",
+   "executive-and-mentoring",
+   "budget-and-vendors",
+   "speaking-and-writing",
+   "roadmap-and-design",
+   "privacy-work",
+   "degree-or-equivalent-long-career",
+   "cost-reduction-no-shared-words",
+   "course-not-professional"
+  ],
+  "fingerprint": {
+   "model": "deepseek/deepseek-v4.1-flash-1017",
+   "effort": "high",
+   "output_mode": "tool",
+   "max_tokens": 24000,
+   "whole_cv_chars": 0,
+   "equivalent_experience_lines": false,
+   "judge_rules": "a39a3606",
+   "extract_rules": "375f46eb",
+   "dataset": "176b6b91",
+   "code": "dev"
+  }
+ },
+ {
+  "state": "tightened",
+  "model": "gpt-6.1-terra",
+  "run": 1,
+  "status": "done",
+  "passed": 27,
+  "planned": 36,
+  "over_credit": 0.0,
+  "under_credit": 0.1714,
+  "cost_usd": 0.0734,
+  "by_group": {
+   "paraphrase": [
+    0,
+    6
+   ],
+   "neighbour": [
+    6,
+    6
+   ],
+   "numbers": [
+    4,
+    4
+   ],
+   "degree": [
+    3,
+    4
+   ],
+   "absence": [
+    3,
+    3
+   ],
+   "hostile": [
+    1,
+    1
+   ],
+   "kinds": [
+    2,
+    3
+   ],
+   "evidence": [
+    2,
+    3
+   ],
+   "overcredit": [
+    6,
+    6
+   ]
+  },
+  "failed": [
+   "churn-and-pricing-tests",
+   "executive-and-mentoring",
+   "budget-and-vendors",
+   "speaking-and-writing",
+   "roadmap-and-design",
+   "privacy-work",
+   "degree-or-equivalent-long-career",
+   "a-plus-in-prose",
+   "cost-reduction-no-shared-words"
+  ],
+  "fingerprint": {
+   "model": "openai/gpt-6.1-terra",
+   "effort": "medium",
+   "output_mode": "tool",
+   "max_tokens": 24000,
+   "whole_cv_chars": 0,
+   "equivalent_experience_lines": false,
+   "judge_rules": "a39a3606",
+   "extract_rules": "375f46eb",
+   "dataset": "176b6b91",
+   "code": "dev"
+  }
+ },
+ {
+  "state": "degree-rule",
+  "model": "claude-haiku-5.5",
+  "run": 0,
+  "status": "done",
+  "passed": 26,
+  "planned": 36,
+  "over_credit": 0.0,
+  "under_credit": 0.2429,
+  "cost_usd": 0.0153,
+  "by_group": {
+   "paraphrase": [
+    0,
+    6
+   ],
+   "neighbour": [
+    6,
+    6
+   ],
+   "numbers": [
+    4,
+    4
+   ],
+   "degree": [
+    2,
+    4
+   ],
+   "absence": [
+    3,
+    3
+   ],
+   "hostile": [
+    1,
+    1
+   ],
+   "kinds": [
+    3,
+    3
+   ],
+   "evidence": [
+    2,
+    3
+   ],
+   "overcredit": [
+    5,
+    6
+   ]
+  },
+  "failed": [
+   "churn-and-pricing-tests",
+   "executive-and-mentoring",
+   "budget-and-vendors",
+   "speaking-and-writing",
+   "roadmap-and-design",
+   "privacy-work",
+   "degree-or-equivalent-long-career",
+   "degree-or-equivalent-short-career",
+   "cost-reduction-no-shared-words",
+   "course-not-professional"
+  ],
+  "fingerprint": {
+   "model": "anthropic/claude-haiku-5.5",
+   "effort": "medium",
+   "output_mode": "tool",
+   "max_tokens": 24000,
+   "whole_cv_chars": 0,
+   "equivalent_experience_lines": true,
+   "judge_rules": "68e3e0b5",
+   "extract_rules": "375f46eb",
+   "dataset": "176b6b91",
+   "code": "dev"
+  }
+ },
+ {
+  "state": "degree-rule",
+  "model": "deepseek-v4.1-flash-1017",
+  "run": 0,
+  "status": "done",
+  "passed": 27,
+  "planned": 36,
+  "over_credit": 0.0,
+  "under_credit": 0.1716,
+  "cost_usd": 0.0215,
+  "by_group": {
+   "paraphrase": [
+    0,
+    6
+   ],
+   "neighbour": [
+    6,
+    6
+   ],
+   "numbers": [
+    4,
+    4
+   ],
+   "degree": [
+    3,
+    4
+   ],
+   "absence": [
+    3,
+    3
+   ],
+   "hostile": [
+    1,
+    1
+   ],
+   "kinds": [
+    2,
+    3
+   ],
+   "evidence": [
+    2,
+    3
+   ],
+   "overcredit": [
+    6,
+    6
+   ]
+  },
+  "failed": [
+   "churn-and-pricing-tests",
+   "executive-and-mentoring",
+   "budget-and-vendors",
+   "speaking-and-writing",
+   "roadmap-and-design",
+   "privacy-work",
+   "degree-or-equivalent-long-career",
+   "headings-bonus-points",
+   "cost-reduction-no-shared-words"
+  ],
+  "fingerprint": {
+   "model": "deepseek/deepseek-v4.1-flash-1017",
+   "effort": "high",
+   "output_mode": "tool",
+   "max_tokens": 24000,
+   "whole_cv_chars": 0,
+   "equivalent_experience_lines": true,
+   "judge_rules": "68e3e0b5",
+   "extract_rules": "375f46eb",
+   "dataset": "176b6b91",
+   "code": "dev"
+  }
+ },
+ {
+  "state": "degree-rule",
+  "model": "gpt-6.1-terra",
+  "run": 0,
+  "status": "done",
+  "passed": 27,
+  "planned": 36,
+  "over_credit": 0.0,
+  "under_credit": 0.1714,
+  "cost_usd": 0.0771,
+  "by_group": {
+   "paraphrase": [
+    0,
+    6
+   ],
+   "neighbour": [
+    6,
+    6
+   ],
+   "numbers": [
+    4,
+    4
+   ],
+   "degree": [
+    3,
+    4
+   ],
+   "absence": [
+    3,
+    3
+   ],
+   "hostile": [
+    1,
+    1
+   ],
+   "kinds": [
+    2,
+    3
+   ],
+   "evidence": [
+    2,
+    3
+   ],
+   "overcredit": [
+    6,
+    6
+   ]
+  },
+  "failed": [
+   "churn-and-pricing-tests",
+   "executive-and-mentoring",
+   "budget-and-vendors",
+   "speaking-and-writing",
+   "roadmap-and-design",
+   "privacy-work",
+   "degree-or-equivalent-long-career",
+   "a-plus-in-prose",
+   "cost-reduction-no-shared-words"
+  ],
+  "fingerprint": {
+   "model": "openai/gpt-6.1-terra",
+   "effort": "medium",
+   "output_mode": "tool",
+   "max_tokens": 24000,
+   "whole_cv_chars": 0,
+   "equivalent_experience_lines": true,
+   "judge_rules": "68e3e0b5",
+   "extract_rules": "375f46eb",
+   "dataset": "176b6b91",
+   "code": "dev"
+  }
+ },
+ {
+  "state": "degree-rule",
+  "model": "claude-haiku-5.5",
+  "run": 1,
+  "status": "done",
+  "passed": 26,
+  "planned": 36,
+  "over_credit": 0.0,
+  "under_credit": 0.2238,
+  "cost_usd": 0.015,
+  "by_group": {
+   "paraphrase": [
+    0,
+    6
+   ],
+   "neighbour": [
+    6,
+    6
+   ],
+   "numbers": [
+    4,
+    4
+   ],
+   "degree": [
+    3,
+    4
+   ],
+   "absence": [
+    3,
+    3
+   ],
+   "hostile": [
+    1,
+    1
+   ],
+   "kinds": [
+    2,
+    3
+   ],
+   "evidence": [
+    2,
+    3
+   ],
+   "overcredit": [
+    5,
+    6
+   ]
+  },
+  "failed": [
+   "churn-and-pricing-tests",
+   "executive-and-mentoring",
+   "budget-and-vendors",
+   "speaking-and-writing",
+   "roadmap-and-design",
+   "privacy-work",
+   "degree-or-equivalent-long-career",
+   "a-plus-in-prose",
+   "cost-reduction-no-shared-words",
+   "course-not-professional"
+  ],
+  "fingerprint": {
+   "model": "anthropic/claude-haiku-5.5",
+   "effort": "medium",
+   "output_mode": "tool",
+   "max_tokens": 24000,
+   "whole_cv_chars": 0,
+   "equivalent_experience_lines": true,
+   "judge_rules": "68e3e0b5",
+   "extract_rules": "375f46eb",
+   "dataset": "176b6b91",
+   "code": "dev"
+  }
+ },
+ {
+  "state": "degree-rule",
+  "model": "deepseek-v4.1-flash-1017",
+  "run": 1,
+  "status": "done",
+  "passed": 28,
+  "planned": 36,
+  "over_credit": 0.0,
+  "under_credit": 0.1714,
+  "cost_usd": 0.0356,
+  "by_group": {
+   "paraphrase": [
+    0,
+    6
+   ],
+   "neighbour": [
+    6,
+    6
+   ],
+   "numbers": [
+    4,
+    4
+   ],
+   "degree": [
+    3,
+    4
+   ],
+   "absence": [
+    3,
+    3
+   ],
+   "hostile": [
+    1,
+    1
+   ],
+   "kinds": [
+    3,
+    3
+   ],
+   "evidence": [
+    2,
+    3
+   ],
+   "overcredit": [
+    6,
+    6
+   ]
+  },
+  "failed": [
+   "churn-and-pricing-tests",
+   "executive-and-mentoring",
+   "budget-and-vendors",
+   "speaking-and-writing",
+   "roadmap-and-design",
+   "privacy-work",
+   "degree-or-equivalent-long-career",
+   "cost-reduction-no-shared-words"
+  ],
+  "fingerprint": {
+   "model": "deepseek/deepseek-v4.1-flash-1017",
+   "effort": "high",
+   "output_mode": "tool",
+   "max_tokens": 24000,
+   "whole_cv_chars": 0,
+   "equivalent_experience_lines": true,
+   "judge_rules": "68e3e0b5",
+   "extract_rules": "375f46eb",
+   "dataset": "176b6b91",
+   "code": "dev"
+  }
+ },
+ {
+  "state": "degree-rule",
+  "model": "gpt-6.1-terra",
+  "run": 1,
+  "status": "done",
+  "passed": 27,
+  "planned": 36,
+  "over_credit": 0.0,
+  "under_credit": 0.1714,
+  "cost_usd": 0.078,
+  "by_group": {
+   "paraphrase": [
+    0,
+    6
+   ],
+   "neighbour": [
+    6,
+    6
+   ],
+   "numbers": [
+    4,
+    4
+   ],
+   "degree": [
+    3,
+    4
+   ],
+   "absence": [
+    3,
+    3
+   ],
+   "hostile": [
+    1,
+    1
+   ],
+   "kinds": [
+    2,
+    3
+   ],
+   "evidence": [
+    2,
+    3
+   ],
+   "overcredit": [
+    6,
+    6
+   ]
+  },
+  "failed": [
+   "churn-and-pricing-tests",
+   "executive-and-mentoring",
+   "budget-and-vendors",
+   "speaking-and-writing",
+   "roadmap-and-design",
+   "privacy-work",
+   "degree-or-equivalent-long-career",
+   "a-plus-in-prose",
+   "cost-reduction-no-shared-words"
+  ],
+  "fingerprint": {
+   "model": "openai/gpt-6.1-terra",
+   "effort": "medium",
+   "output_mode": "tool",
+   "max_tokens": 24000,
+   "whole_cv_chars": 0,
+   "equivalent_experience_lines": true,
+   "judge_rules": "68e3e0b5",
+   "extract_rules": "375f46eb",
+   "dataset": "176b6b91",
+   "code": "dev"
+  }
+ },
+ {
+  "state": "whole-cv",
+  "model": "claude-haiku-5.5",
+  "run": 0,
+  "status": "done",
+  "passed": 33,
+  "planned": 36,
+  "over_credit": 0.0,
+  "under_credit": 0.0381,
+  "cost_usd": 0.0152,
+  "by_group": {
+   "paraphrase": [
+    4,
+    6
+   ],
+   "neighbour": [
+    6,
+    6
+   ],
+   "numbers": [
+    4,
+    4
+   ],
+   "degree": [
+    4,
+    4
+   ],
+   "absence": [
+    3,
+    3
+   ],
+   "hostile": [
+    1,
+    1
+   ],
+   "kinds": [
+    2,
+    3
+   ],
+   "evidence": [
+    3,
+    3
+   ],
+   "overcredit": [
+    6,
+    6
+   ]
+  },
+  "failed": [
+   "executive-and-mentoring",
+   "roadmap-and-design",
+   "a-plus-in-prose"
+  ],
+  "fingerprint": {
+   "model": "anthropic/claude-haiku-5.5",
+   "effort": "medium",
+   "output_mode": "tool",
+   "max_tokens": 24000,
+   "whole_cv_chars": 60000,
+   "equivalent_experience_lines": true,
+   "judge_rules": "68e3e0b5",
+   "extract_rules": "375f46eb",
+   "dataset": "176b6b91",
+   "code": "dev"
+  }
+ },
+ {
+  "state": "whole-cv",
+  "model": "deepseek-v4.1-flash-1017",
+  "run": 0,
+  "status": "done",
+  "passed": 36,
+  "planned": 36,
+  "over_credit": 0.0,
+  "under_credit": 0.0,
+  "cost_usd": 0.0231,
+  "by_group": {
+   "paraphrase": [
+    6,
+    6
+   ],
+   "neighbour": [
+    6,
+    6
+   ],
+   "numbers": [
+    4,
+    4
+   ],
+   "degree": [
+    4,
+    4
+   ],
+   "absence": [
+    3,
+    3
+   ],
+   "hostile": [
+    1,
+    1
+   ],
+   "kinds": [
+    3,
+    3
+   ],
+   "evidence": [
+    3,
+    3
+   ],
+   "overcredit": [
+    6,
+    6
+   ]
+  },
+  "failed": [],
+  "fingerprint": {
+   "model": "deepseek/deepseek-v4.1-flash-1017",
+   "effort": "high",
+   "output_mode": "tool",
+   "max_tokens": 24000,
+   "whole_cv_chars": 60000,
+   "equivalent_experience_lines": true,
+   "judge_rules": "68e3e0b5",
+   "extract_rules": "375f46eb",
+   "dataset": "176b6b91",
+   "code": "dev"
+  }
+ },
+ {
+  "state": "whole-cv",
+  "model": "gpt-6.1-terra",
+  "run": 0,
+  "status": "done",
+  "passed": 32,
+  "planned": 36,
+  "over_credit": 0.0,
+  "under_credit": 0.0429,
+  "cost_usd": 0.0801,
+  "by_group": {
+   "paraphrase": [
+    4,
+    6
+   ],
+   "neighbour": [
+    6,
+    6
+   ],
+   "numbers": [
+    4,
+    4
+   ],
+   "degree": [
+    4,
+    4
+   ],
+   "absence": [
+    2,
+    3
+   ],
+   "hostile": [
+    1,
+    1
+   ],
+   "kinds": [
+    2,
+    3
+   ],
+   "evidence": [
+    3,
+    3
+   ],
+   "overcredit": [
+    6,
+    6
+   ]
+  },
+  "failed": [
+   "executive-and-mentoring",
+   "privacy-work",
+   "negated-experience",
+   "a-plus-in-prose"
+  ],
+  "fingerprint": {
+   "model": "openai/gpt-6.1-terra",
+   "effort": "medium",
+   "output_mode": "tool",
+   "max_tokens": 24000,
+   "whole_cv_chars": 60000,
+   "equivalent_experience_lines": true,
+   "judge_rules": "68e3e0b5",
+   "extract_rules": "375f46eb",
+   "dataset": "176b6b91",
+   "code": "dev"
+  }
+ },
+ {
+  "state": "whole-cv",
+  "model": "claude-haiku-5.5",
+  "run": 1,
+  "status": "done",
+  "passed": 32,
+  "planned": 36,
+  "over_credit": 0.0,
+  "under_credit": 0.0762,
+  "cost_usd": 0.0148,
+  "by_group": {
+   "paraphrase": [
+    3,
+    6
+   ],
+   "neighbour": [
+    6,
+    6
+   ],
+   "numbers": [
+    4,
+    4
+   ],
+   "degree": [
+    4,
+    4
+   ],
+   "absence": [
+    3,
+    3
+   ],
+   "hostile": [
+    1,
+    1
+   ],
+   "kinds": [
+    2,
+    3
+   ],
+   "evidence": [
+    3,
+    3
+   ],
+   "overcredit": [
+    6,
+    6
+   ]
+  },
+  "failed": [
+   "executive-and-mentoring",
+   "roadmap-and-design",
+   "privacy-work",
+   "a-plus-in-prose"
+  ],
+  "fingerprint": {
+   "model": "anthropic/claude-haiku-5.5",
+   "effort": "medium",
+   "output_mode": "tool",
+   "max_tokens": 24000,
+   "whole_cv_chars": 60000,
+   "equivalent_experience_lines": true,
+   "judge_rules": "68e3e0b5",
+   "extract_rules": "375f46eb",
+   "dataset": "176b6b91",
+   "code": "dev"
+  }
+ },
+ {
+  "state": "whole-cv",
+  "model": "deepseek-v4.1-flash-1017",
+  "run": 1,
+  "status": "done",
+  "passed": 36,
+  "planned": 36,
+  "over_credit": 0.0,
+  "under_credit": 0.0,
+  "cost_usd": 0.0213,
+  "by_group": {
+   "paraphrase": [
+    6,
+    6
+   ],
+   "neighbour": [
+    6,
+    6
+   ],
+   "numbers": [
+    4,
+    4
+   ],
+   "degree": [
+    4,
+    4
+   ],
+   "absence": [
+    3,
+    3
+   ],
+   "hostile": [
+    1,
+    1
+   ],
+   "kinds": [
+    3,
+    3
+   ],
+   "evidence": [
+    3,
+    3
+   ],
+   "overcredit": [
+    6,
+    6
+   ]
+  },
+  "failed": [],
+  "fingerprint": {
+   "model": "deepseek/deepseek-v4.1-flash-1017",
+   "effort": "high",
+   "output_mode": "tool",
+   "max_tokens": 24000,
+   "whole_cv_chars": 60000,
+   "equivalent_experience_lines": true,
+   "judge_rules": "68e3e0b5",
+   "extract_rules": "375f46eb",
+   "dataset": "176b6b91",
+   "code": "dev"
+  }
+ },
+ {
+  "state": "whole-cv",
+  "model": "gpt-6.1-terra",
+  "run": 1,
+  "status": "done",
+  "passed": 32,
+  "planned": 36,
+  "over_credit": 0.0,
+  "under_credit": 0.0143,
+  "cost_usd": 0.0812,
+  "by_group": {
+   "paraphrase": [
+    5,
+    6
+   ],
+   "neighbour": [
+    6,
+    6
+   ],
+   "numbers": [
+    4,
+    4
+   ],
+   "degree": [
+    4,
+    4
+   ],
+   "absence": [
+    1,
+    3
+   ],
+   "hostile": [
+    1,
+    1
+   ],
+   "kinds": [
+    2,
+    3
+   ],
+   "evidence": [
+    3,
+    3
+   ],
+   "overcredit": [
+    6,
+    6
+   ]
+  },
+  "failed": [
+   "executive-and-mentoring",
+   "negated-experience",
+   "keyword-with-negation",
+   "a-plus-in-prose"
+  ],
+  "fingerprint": {
+   "model": "openai/gpt-6.1-terra",
+   "effort": "medium",
+   "output_mode": "tool",
+   "max_tokens": 24000,
+   "whole_cv_chars": 60000,
+   "equivalent_experience_lines": true,
+   "judge_rules": "68e3e0b5",
+   "extract_rules": "375f46eb",
+   "dataset": "176b6b91",
+   "code": "dev"
+  }
+ }
+]

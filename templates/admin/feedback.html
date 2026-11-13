@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Wishes{% endblock %}
+{% block body %}
+<div class="page-head"><h1>Wishes and votes</h1><p class="muted">What visitors wrote on the roadmap page, and how many would use each item. Delete a wish when it is dealt with or when its author asks.</p></div>
+<section class="form" aria-labelledby="votes-title">
+  <div class="ribbon ribbon-yellow"><h2 id="votes-title">Votes per item</h2></div>
+  <div class="table-scroll"><table><thead><tr><th>Item</th><th>Status</th><th class="num">Votes</th></tr></thead><tbody>
+  {% for it in items %}<tr><th scope="row">{{ it.title }}</th><td>{{ statuses[it.status] }}</td><td class="num">{{ votes.get(it.key, 0) }}</td></tr>{% endfor %}</tbody></table></div>
+</section>
+<section class="form" aria-labelledby="wishes-title">
+  <div class="ribbon"><h2 id="wishes-title">Wishes ({{ wishes|length }})</h2></div>
+  {% if not wishes %}<div class="form-body"><p class="empty"><strong>No wishes yet.</strong> They appear here once a visitor sends one from the <a href="{{ url_for('roadmap.roadmap') }}">roadmap page</a>.</p></div>
+  {% else %}<ul class="overall-list form-body">{% for w in wishes %}
+    <li><p>{{ w.text }}</p>
+      <div class="overall-meta"><span class="small">{{ w.created|day }}</span>{% if w.item %}<span class="tag tag-soft">{{ titles.get(w.item, w.item) }}</span>{% endif %}{% if w.contact %}<a href="mailto:{{ w.contact }}">{{ w.contact }}</a>{% else %}<span class="small">no email given</span>{% endif %}
+        <form method="post" action="{{ url_for('admin.feedback_delete', feedback_id=w.id) }}">{{ csrf_field() }}<button class="quiet" aria-label="Delete this wish">Delete</button></form></div></li>{% endfor %}</ul>{% endif %}
+</section>
+{% endblock %}

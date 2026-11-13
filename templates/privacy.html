@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Privacy{% endblock %}
+{% block description %}What this site stores, why, who receives it, for how long, and your rights.{% endblock %}
+{% block body %}
+<div class="page-head"><h1>Privacy</h1><p class="lede">What this site stores when you check a posting or a CV, why, who receives it, for how long, and what you can do. Last updated 12 November 2026.</p></div>
+<section class="form">
+  <div class="fields">
+    <div class="field"><span class="field-label">Who is responsible</span><p>{{ legal_name or owner }}, a private person, is responsible for the data on this site. Address and email are on the <a href="{{ url_for('contact.imprint') }}">imprint</a>.</p></div>
+    <div class="field"><span class="field-label">What is stored, why, and on what legal basis</span>
+      <ul class="plain-list">
+        <li><strong>A job posting you pasted or gave a link to, the report, the chat and any letter</strong>, to produce the report you asked for. If you give a link, this server downloads that one page once to read its text. The link itself is not stored, and the site behind it sees this server's address, not yours. Basis: providing what you asked for (Article 6(1)(b) of the GDPR) and the site owner's interest in running the site (6(1)(f)). A posting is not meant to hold personal data; please do not paste confidential text.</li>
+        <li><strong>The text of a CV you upload</strong> (email addresses and phone numbers are removed automatically; an uploaded file itself is not kept), stored with its report, to produce your report, chat and letter. Basis: your consent, given by ticking the box on the upload page (6(1)(a)), and for any health, religion, union membership or similar detail you leave in it, your explicit consent (9(2)(a)). Please remove a photo and such details first; they are not needed.</li>
+        <li><strong>A note that you agreed</strong> (time, wording version, and a reference that does not name you), to be able to show that consent was given. Basis: 6(1)(f).</li>
+        <li><strong>A salted hash of your network address</strong>, not the address, to limit how many checks one visitor can run and so to prevent abuse and cost. Basis: 6(1)(f). It is kept in a short log for two days, also when you delete your report, because otherwise deleting a report would reset the limit. The cost of each model call (an amount and a time, with no text and no address) is kept for a year so that the spending limits stay accurate. Roadmap votes use the same hash so one person counts once.</li>
+        <li><strong>A wish you send from the roadmap page</strong>, as you wrote it, with your email address only if you give one. Basis: your consent (6(1)(a)); do not put a CV or other personal details in it.</li>
+        <li><strong>The record of how each answer was produced</strong> (the traces), which contains the posting, the CV text and the chat, so that the owner can find and fix errors. Basis: 6(1)(f). It is deleted with the report.</li>
+      </ul></div>
+    <div class="field f-6"><span class="field-label">Who can read it</span><p>Anyone who has your report link, and the site's owner, who can read every report, CV, chat and trace on this site. The owner does not use uploaded CVs for testing, training or any other purpose, and nothing about you is added to any list or pool.</p></div>
+    <div class="field f-6"><span class="field-label">Who receives it</span><p>{{ provider_label }}, which produces the report, the answers and the letter; the company that runs the model it chooses; and the host of this site, {{ hosting }}.{% if otlp %} A copy of how each answer was produced, including the text, is also sent to a monitoring service the owner has set up, and it is not deleted when you delete your report.{% endif %} Models are chosen by the owner and can change; the site asks OpenRouter to use only providers that say they do not collect or train on prompts. Each of these acts on the owner's instructions under its own terms.</p></div>
+    <div class="field"><span class="field-label">Transfers outside the European Economic Area</span><p>The model providers can process your text on servers outside the EEA, including in the United States. Protection there can be weaker than in the EU. For an uploaded CV, this is why you are asked to agree before anything is sent. If you do not agree, do not upload a CV: the start page works with a posting alone, which should not contain personal data. Copies held by a provider follow that provider's own retention rules.</p></div>
+    <div class="field"><span class="field-label">How long it is kept</span>
+      <ul class="plain-list">
+        <li>Checks of a posting against the owner's CV: {{ limits.retention_days }} days, then deleted.</li>
+        <li>Your own CV, the posting, the report, chat, letters and traces: as you choose on the upload page, about {{ session_hours }} hours after your last action, or {{ limits.retention_days }} days. “Delete my report” on the report page removes all of it at once.</li>
+        <li>The note that you agreed: 12 months. Wishes: 12 months, or sooner on request. Votes: while the roadmap shows the item.</li>
+        <li>Daily server backups at the host can still hold a deleted report for up to about a week until they roll over.</li>
+        <li>The host's web server may keep network addresses in its own logs for a short time.</li>
+      </ul></div>
+    <div class="field"><span class="field-label">Your rights</span><p>You can ask for access to your data, correction, deletion, restriction, a copy in a portable form, and you can object to processing based on legitimate interest. Where processing rests on your consent, you can withdraw it at any time by deleting your report; this does not affect what happened before. Write to the email address on the <a href="{{ url_for('contact.imprint') }}">imprint</a>. You can also complain to a data protection authority: in Italy the Garante per la protezione dei dati personali (garanteprivacy.it), or the authority where you live.</p></div>
+    <div class="field"><span class="field-label">Is giving data required?</span><p>No. You do not have to use the site or upload a CV. No decision about you is made by the site: a report is a reading by software, shown only to you.</p></div>
+    <div class="field"><span class="field-label">Cookies and your device</span><p>Pages for visitors set no cookies and store nothing in your browser: no local storage, no session storage, no tracking, no third-party requests (the fonts are served from this site). The colour setting lasts for the page only. The administrator's login page uses one session cookie, which is needed to keep the administrator signed in.</p></div>
+    <div class="field"><span class="field-label">Who is speaking</span><p>Software, working from {{ owner }}'s CV or from the CV you uploaded. The reports and letters are not statements by {{ owner }}, and nothing is sent to anyone on your behalf.</p></div>
+  </div>
+</section>
+{% endblock %}

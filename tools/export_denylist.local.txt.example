@@ -1,0 +1,18 @@
+# Copy this file to tools/export_denylist.local.txt (that name is git-ignored) and fill in your own words.
+# tools/export_public.py reads it and fails the export if any of them appears in a file or in a file name.
+# One entry per line. Everything after " #" is a comment.
+#
+#   Jo Example                  plain words: case-insensitive, whole words, spaces match any whitespace
+#   Example Street 12
+#   re:acme\s+(corp|inc)        a regular expression, case-insensitive
+#   digits:+49 170 5550123    a phone number: matches the number in any notation (spaces, dashes, brackets, with or
+#                               without the country code, if you also list the national form without it)
+#   allow: LICENSE              a file (or a folder ending in /) where deny entries are tolerated, for example the
+#                               copyright line in LICENSE that carries your real name on purpose
+#
+# What belongs here: your real name, street, phone numbers, private email addresses, the production domain and server IP,
+# and the names of real companies and people from your job search. Do not commit the real file.
+Jo Example
+Example Street 12
+digits:+49 170 5550123
+allow: LICENSE
