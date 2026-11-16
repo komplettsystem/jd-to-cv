@@ -21,9 +21,9 @@ CARDS = {
     "my-labels": {
         "title": "My labels",
         "question": "Does a model agree with the verdicts the owner corrected by hand?",
-        "example": [("How it works", "The owner reviews a report and changes the verdicts that are wrong, then marks it reviewed. The eval has the model judge the same requirements again and counts agreement with the corrected verdicts."),
+        "example": [("How it works", "The owner goes through a report and changes the verdicts that are wrong and confirms the ones that are right; a verdict he never looked at does not count. The eval has the model judge the same requirements again and counts agreement with the corrected verdicts."),
                     ("Why it matters", "It is the only dataset whose right answers are the owner's own reading of his CV.")],
-        "limit": "Only as good as the reviews, and it needs about 30 reviewed items before the figure means anything. It uses real reports, so it is not part of the public demo."},
+        "limit": "Only as good as the reviews, and it needs about 30 labelled items before the figure means anything. It uses real reports, so it is not part of the public demo."},
     "citation-support": {
         "title": "Citation support",
         "question": "Is the CV line quoted under a verdict really evidence for it?",

@@ -1,6 +1,8 @@
 """Read-only look at the running app, for debugging: what failed, what ran, what it cost. Runs inside the app container
 (deploy/inspect.sh calls it). It prints metadata and error messages only: never a posting, a CV, a chat message, a letter or a
-prompt, because those belong to the people who sent them. Usage: inspect.py errors | recent | spend | citations | verdicts | catalog"""
+prompt, because those belong to the people who sent them. The one exception is `labels`: for reports where the owner confirmed or
+changed requirements (his own choice, to use them as ground truth) it prints each requirement's wording with its state, the model's
+verdict and his final one, never the CV line or the reason. Usage: inspect.py errors | recent | spend | citations | verdicts | labels | catalog"""
 import json
 import os
 import sqlite3
@@ -80,6 +82,22 @@ def verdicts(c):
               f"({r['dropped']} of those dropped for an unverified line), {r['n']} in all")
 
 
+def labels(c):
+    print("== requirements the owner confirmed or changed: the model's verdict and his final verdict (requirement wording only)")
+    for r in c.execute("SELECT id, run_id, backend, created FROM results WHERE kind='fit' AND status='done' ORDER BY id"):
+        items = c.execute("SELECT idx, text, kind, verdict, override_verdict, override_weight, confirmed FROM items WHERE result_id=? "
+                          "ORDER BY idx", (r["id"],)).fetchall()
+        shown = [i for i in items if i["kind"] == "minimum"] + [i for i in items if i["kind"] != "minimum"]  # the numbers the report shows
+        if not any(i["override_verdict"] is not None or i["confirmed"] for i in items):
+            continue
+        print(f"run {r['run_id']} result {r['id']} {r['created'][:16]} {r['backend']}")
+        for n, i in enumerate(shown, 1):
+            state = "changed" if i["override_verdict"] is not None else "confirmed" if i["confirmed"] else "not reviewed"
+            final = i["override_verdict"] or i["verdict"]
+            weight = f" weight {i['override_weight']}" if i["override_weight"] is not None else ""
+            print(f"  {n}. [{i['kind']}] {state}: model {i['verdict']} -> final {final}{weight} | {short(i['text'], 200)}")
+
+
 def catalog(c):
     print("== model catalog (on/off as set in the admin, price per million tokens in/out in USD)")
     for r in c.execute("SELECT id, enabled, output_mode, price_in, price_out, effort, context FROM catalog WHERE provider != 'baseline' ORDER BY enabled DESC, id"):
@@ -88,7 +106,7 @@ def catalog(c):
         print(f"{'ON ' if r['enabled'] else 'off'} {r['id']} ({r['output_mode']}) {pin}/{pout} effort={r['effort'] or '-'} context={r['context']}")
 
 
-COMMANDS = {"catalog": catalog, "errors": errors, "recent": recent, "spend": spend, "citations": citations, "verdicts": verdicts}
+COMMANDS = {"catalog": catalog, "errors": errors, "recent": recent, "spend": spend, "citations": citations, "verdicts": verdicts, "labels": labels}
 
 if __name__ == "__main__":
     if len(sys.argv) != 2 or sys.argv[1] not in COMMANDS:

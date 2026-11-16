@@ -23,7 +23,7 @@ def test_already_live_comes_last_and_lists_the_built_things_without_vote_buttons
     html = page(tmp_path, monkeypatch)
     assert html.index('id="wish-title"') < html.index('id="live-title"')
     live = html[html.index('id="live-title"'):]
-    for title in ("Check your own CV against a posting", "The chat asks the match engine", "Interview prep from the gaps",
+    for title in ("Check your own CV against a posting", "The chat answers what-if questions", "Interview prep from the gaps",
                   "Ask the CV about things the posting never asked"):
         assert title in live, title
     assert "I would use this" not in live

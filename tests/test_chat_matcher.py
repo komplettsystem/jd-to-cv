@@ -75,7 +75,7 @@ class Script:
 
 def bot(script, tracing=None, entry=None, items=ITEMS):
     return chat.ReportChat(entry or ENTRY, tracing, script.model(), "A posting.", items, CHUNKS,
-                           score_value=match.score(items), gap=match.minimum_gap(items))
+                           gap=match.minimum_gap(items))
 
 
 @pytest.fixture
@@ -98,17 +98,17 @@ def judge_for(script, tracing):
 
 def test_the_instructions_of_a_bot_with_tools_say_which_source_answers_which_question():
     text = chat.instructions_for({"tools": 1})
-    assert "ask_matcher" in text and "rescore" in text and "explain_scoring" in text
+    assert "ask_matcher" in text and "check_overall" in text and "rescore" not in text
     assert "answer from the report text" in text and "Call no tool" in text      # report and posting questions: no tool
     assert "does not already cover" in text and "Met, Partly or Not shown" in text
     assert "not evidence" in text and "never say that a verdict was changed" in text
-    assert match.scoring_rules() not in text                                        # the formula still belongs to the engine
+    assert "divided by" not in text
     assert "—" not in text                                                          # no em dash in what the model may echo
 
 
-def test_a_bot_without_tools_gets_exactly_the_instructions_it_had_before():
+def test_a_bot_without_tools_gets_the_instructions_without_tools():
     text = chat.instructions_for({"tools": 0})
-    assert text == chat.INSTRUCTIONS and "ask_matcher" not in text and match.scoring_rules() in text
+    assert text == chat.INSTRUCTIONS and "ask_matcher" not in text and "check_overall" not in text
 
 
 # --- the matcher gives what a report item has -----------------------------------------------------------------------------------
@@ -168,9 +168,9 @@ def test_the_matcher_never_changes_the_report_or_its_percentage(tracing):
 
 # --- the chat bot and its tool --------------------------------------------------------------------------------------------------
 
-def test_a_bot_with_tools_has_the_matcher_and_the_engine_but_no_keyword_search(tracing):
+def test_a_bot_with_tools_has_the_matcher_and_the_overall_check_but_no_keyword_search(tracing):
     tools = set(bot(Script(), tracing)._agent(False)._function_toolset.tools)
-    assert tools == {"ask_matcher", "rescore", "explain_scoring"}
+    assert tools == {"ask_matcher", "check_overall"}
 
 
 def test_a_bot_without_tools_is_unchanged_it_has_no_tools_and_still_gets_word_matched_lines(tracing):

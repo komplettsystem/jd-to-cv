@@ -31,6 +31,7 @@ def _with_score():
              for i in SAMPLE["items"]]
     SAMPLE["score"] = round(match.score(items))
     SAMPLE["gap"] = match.minimum_gap(items)
+    SAMPLE["counts"] = match.verdict_counts(items)
 
 
 _with_score()  # the shown score is computed by the same formula the report explains

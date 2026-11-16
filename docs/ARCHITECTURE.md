@@ -67,23 +67,19 @@ Admin: scrypt password hash, login rate limit, session cookie (HttpOnly, SameSit
 token on every POST, Content-Security-Policy with no inline script or style. Traces, notes, terms and the model
 catalog never reach a public page; a test checks it.
 
-## The match engine and the chat bot
+## The chat bot and its tools
 
-The scoring lives in one place, `match.py` (weights, what each verdict is worth, the percentage). `match_engine.py` wraps it in a
-small message interface: JSON-RPC 2.0 shaped like the Model Context Protocol (`initialize`, `tools/list`, `tools/call`) with two
-tools, `rescore` and `explain_scoring`. The engine is plain code, not a model.
+Visitors see no match percentage: the report shows the minimum requirements as met, partly met and not shown, and the overall reading. The percentage is still worked out in `match.py` (weights, what each verdict is worth) and shown on the admin page. The separate message-based scoring service that the chat used to call (`match_engine.py`) was removed: nothing else used it, and the planned API and MCP offer does not include recalculation.
 
 The chat bot (`llm/chat.py`) of a model that can call tools chooses its source for each question, and its instructions say how:
 
 | The question is about | The bot uses | What answers |
 |---|---|---|
-| the posting or the report (why a verdict, which are met) | no tool | the report text in its prompt |
-| the score (how it is calculated, what leaving a requirement out would do) | `explain_scoring`, `rescore` | the match engine: plain code, no model |
+| the posting or the report (why a verdict, which are met, what the overall reading is) | no tool | the report text in its prompt |
+| what leaving requirements out or treating them as met would do | `check_overall` | the exact counts of minimum requirements before and after, worked out in code, and the overall reading re-made by a model on the changed requirements (`overall.read`, at most twice per answer), compared with the stored one |
 | the CV, where the report does not already cover it ("Has he led a team across several countries?") | `ask_matcher` | the matcher: the report's own judge, a model, reading the whole CV |
 
-The bot is not told the formula; to answer "what would removing requirement 6 do to the match?" it calls `rescore` and reports the
-engine's number. A model without tools is given the formula and the effect of each requirement, worked out in code beforehand, and
-word-matched CV lines for the question, exactly as before the matcher existed.
+`check_overall` changes nothing that is stored. The re-read is one model reading and can differ a little from run to run; the bot is told to say so and never to guess whether the overall reading would change. When the report has no stored overall reading, or the re-read fails, the tool answers with the counts and tells the bot to say it cannot tell. A model without tools cannot call it: it is told it cannot re-run the overall reading, and is given word-matched CV lines for the question, as before the matcher existed.
 
 The matcher (`llm/matcher.py`) is a small agent-to-agent call, not a second judge: up to five statements from the bot's question are
 turned into requirements and go through `Agents.judge_async`, the same judge step and the same whole-CV reading a report uses (the
@@ -93,15 +89,14 @@ quoted line. Rules around it:
 
 - The statements come from a visitor's question, which is untrusted. The judge is told that a requirement's own claim is not
   evidence, it can cite only CV lines, and a credit that cites no real line is downgraded to not shown as in any report. The result
-  is a reading of the CV, never an edit: the stored report and its percentage are not touched.
+  is a reading of the CV, never an edit: the stored report is not touched.
 - The matcher's model requests count against the chat run's usage limits (`usage` is passed into the nested run), and the matcher
   may be called twice per answer (`MAX_MATCHER_CALLS`). Its cost lands on the same trace, so the per-report spend cap sees it.
 - If the matcher fails, the bot is told to say that the CV does not show it; the failed exchange is kept and shown. An answer about the CV normally has to cite a CV line; when the matcher showed none (or failed), "the CV does not show it" is accepted with no line, so that no unrelated quote is attached to it.
 - The nested run is one trace with the chat run: root span, then the chat agent, its `ask_matcher` tool call, then the judge agent.
 - A share link that does not show the CV gets the exchange without the quoted lines (`web.common.hide_cv_lines`).
 
-Every request and reply, to the engine or the matcher, is stored with the answer (`chat_messages.exchanges`) and shown under it on
-the report page. Figures that appear in an answer must come from the posting, the CV, the report or a reply from the engine or the
-matcher; any other figure makes the answer fail its check and the model retries.
+Every request and reply, to the overall-reading check or the matcher, is stored with the answer (`chat_messages.exchanges`) and shown under it on
+the report page. Figures that appear in an answer must come from the posting, the CV, the report or a reply from the
+overall-reading check or the matcher; any other figure makes the answer fail its check and the model retries.
 
-The engine could be offered to outside agents over HTTP as an MCP server (see the roadmap); today it is called inside the app only.

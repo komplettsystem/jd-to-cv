@@ -132,10 +132,11 @@ COLUMNS = [
     ("letters", "variant", "TEXT NOT NULL DEFAULT ''"),                   # which opening a comparison draft tests (empty for ordinary letters)
     ("spend_ledger", "door", "TEXT NOT NULL DEFAULT 'recruiter'"),        # 'recruiter' (the owner's CV) or 'seeker' (a visitor's own CV)
     ("check_log", "door", "TEXT NOT NULL DEFAULT 'recruiter'"),
-    ("chat_messages", "exchanges", "TEXT NOT NULL DEFAULT '[]'"),        # messages between the chat bot and the match engine
+    ("chat_messages", "exchanges", "TEXT NOT NULL DEFAULT '[]'"),        # messages between the chat bot and its tools
     ("chat_messages", "mode", "TEXT NOT NULL DEFAULT 'normal'"),   # 'normal' or 'skeptic'
     ("runs", "share_letter", "INTEGER NOT NULL DEFAULT 0"),   # may the holder of the share link draft a cover letter
     ("runs", "expires", "TEXT"),                              # public runs are deleted after this date
+    ("items", "confirmed", "INTEGER NOT NULL DEFAULT 0"),    # 1 when the owner clicked Confirm: a verdict he looked at and agrees with
     ("traces", "billable", "INTEGER NOT NULL DEFAULT 0"),      # 1 when the call costs real money (not a plan or a local model)
     ("traces", "public", "INTEGER NOT NULL DEFAULT 0"),       # spend by visitors counts against the daily budget
     ("results", "overall", "TEXT NOT NULL DEFAULT ''"),       # JSON: the overall reading, or {"error": ...}; empty when none was made
@@ -445,6 +446,15 @@ class DB:
         if chunk is not False:
             self.run("UPDATE items SET override_chunk_id=?, override_evidence=?, override_section=? WHERE id=?",
                      (chunk["id"], chunk["text"], chunk["section"], item_id) if chunk else (None, None, None, item_id))
+
+    def set_confirmed(self, item_id, confirmed):
+        self.run("UPDATE items SET confirmed=? WHERE id=?", (int(bool(confirmed)), item_id))
+
+    def confirm_remaining(self, result_id):
+        """Confirm every requirement of a report that the owner has neither confirmed nor changed. Returns how many."""
+        n = self.one("SELECT COUNT(*) AS n FROM items WHERE result_id=? AND confirmed=0 AND override_verdict IS NULL", (result_id,))["n"]
+        self.run("UPDATE items SET confirmed=1 WHERE result_id=? AND confirmed=0 AND override_verdict IS NULL", (result_id,))
+        return n
 
     # --- term items ---------------------------------------------------------------------
     def save_term_items(self, result_id, items):

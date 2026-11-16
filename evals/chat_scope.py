@@ -227,7 +227,7 @@ class ChatScope(Spec):
 
         def task(inputs):
             rc = chat.ReportChat(entry, svc.tracing, model, inputs["posting"], items, chunks,
-                                 score_value=match.score(items), gap=match.minimum_gap(items))
+                                 gap=match.minimum_gap(items))
             out = rc.ask(inputs["question"], skeptic=inputs["skeptic"])
             return {"question": inputs["question"], "scope": out["scope"], "content": out["content"],
                     "basis": list(out["basis"]), "evidence": [{"id": e["id"], "text": e["text"]} for e in out["evidence"]],

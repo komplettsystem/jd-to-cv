@@ -91,7 +91,7 @@ def test_a_visitor_sees_the_reading_but_only_line_counts_unless_the_cv_is_shared
     app.extensions["svc"].db.run("UPDATE runs SET share_show_cv=0")
     page = Browser(app).get(f"/r/{token}").data.decode()
     assert "Overall reading" in page and "Good fit" in page and "Inferred from the CV" in page
-    assert "does not change the percentage" in page
+    assert "does not change the verdicts or the counts" in page
     assert "The text is not shared on this link" in page
     app.extensions["svc"].db.run("UPDATE runs SET share_show_cv=1")
     page = Browser(app).get(f"/r/{token}").data.decode()
@@ -121,7 +121,7 @@ def test_a_failed_reading_leaves_the_report_complete_and_shows_visitors_no_error
     app.extensions["svc"].model_factory = lambda entry: FunctionModel(failing, model_name="scripted")
     token = token_of(public_check(Browser(app)))
     page = Browser(app).get(f"/r/{token}").data.decode()
-    assert "% match" in page and "could not be produced for this report" in page and "secret provider detail" not in page
+    assert "% match" not in page and "could not be produced for this report" in page and "secret provider detail" not in page
     admin_page = Browser(app, addr="127.0.0.1").get(f"/admin/runs/{app.extensions['svc'].db.run_by_token(token)['id']}").data.decode()
     assert "The overall reading failed" in admin_page
 

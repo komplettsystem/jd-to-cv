@@ -342,6 +342,18 @@ def effective_verdict(item):
     return item.get("override_verdict") or item["verdict"]
 
 
+def item_state(item):
+    """What the owner has done with a requirement: "changed" (he overrode the verdict), "confirmed" (he clicked Confirm) or
+    "unreviewed" (nothing: the model's verdict stands only because nobody looked at it). Only the first two are his labels."""
+    if item.get("override_verdict") is not None:
+        return "changed"
+    return "confirmed" if item.get("confirmed") else "unreviewed"
+
+
+def is_labelled(item):
+    return item_state(item) != "unreviewed"
+
+
 def effective_weight(item):
     w = item.get("override_weight")
     return DEFAULT_WEIGHT[item["kind"]] if w is None else w
@@ -362,16 +374,20 @@ def display_order(items):
     return [i for i in items if i["kind"] == "minimum"] + [i for i in items if i["kind"] != "minimum"]
 
 
-def rescore(items, leave_out=(), treat_as_met=()):
-    """(the match now, the match after leaving some requirements out and treating others as met). Numbers are the
-    requirement numbers shown in the report. Raises ValueError for a number the report does not have."""
+def what_if_items(items, leave_out=(), treat_as_met=()):
+    """The report's requirements after leaving some out and treating others as met. Numbers are the requirement numbers shown
+    in the report. Raises ValueError for a number the report does not have."""
     ordered = display_order(items)
     for k in (*leave_out, *treat_as_met):
         if not 1 <= k <= len(ordered):
             raise ValueError(f"there is no requirement {k}; this report has {len(ordered)}")
-    changed = [{**it, "override_verdict": "met"} if n in treat_as_met else it
-               for n, it in enumerate(ordered, 1) if n not in leave_out]
-    return score(items), score(changed)
+    return [{**it, "override_verdict": "met"} if n in treat_as_met else it
+            for n, it in enumerate(ordered, 1) if n not in leave_out]
+
+
+def rescore(items, leave_out=(), treat_as_met=()):
+    """(the match now, the match after leaving some requirements out and treating others as met)."""
+    return score(items), score(what_if_items(items, leave_out, treat_as_met))
 
 
 def scoring_rules():
@@ -387,6 +403,15 @@ def minimum_gap(items):
     """(minimum requirements not shown, minimum requirements)."""
     mins = [i for i in items if i["kind"] == "minimum"]
     return sum(1 for i in mins if effective_verdict(i) == "not_on_record"), len(mins)
+
+
+def verdict_counts(items, kind="minimum"):
+    """How many requirements of this kind are met, partly met and not shown, by the verdict the report shows."""
+    out = {"met": 0, "partial": 0, "not_on_record": 0}
+    for i in items:
+        if i["kind"] == kind:
+            out[effective_verdict(i)] += 1
+    return out
 
 
 # --- the pipeline -------------------------------------------------------------------------

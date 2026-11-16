@@ -68,7 +68,7 @@
   {% for m in models %}<tr><th scope="row">{{ ui.model(m.backend) }}</th>
     <td class="num">{{ m.done }}{% if m.failed %}<span class="sub">{{ m.failed }} failed</span>{% endif %}</td>
     <td class="num">{{ m.p50|secs }} / {{ m.p95|secs }}</td><td class="num">{{ m.tokens_in|num }} / {{ m.tokens_out|num }}</td><td class="num">{{ m.cost|usd }}</td>
-    <td>{% if m.agreement is not none %}{{ (m.agreement * 100)|pct }}{{ chart_bar(m.agreement, 1, 'Verdicts you left unchanged') }}<span class="sub">of {{ m.n_items }} verdicts reviewed</span>{% else %}<span class="muted">none reviewed</span>{% endif %}</td>
+    <td>{% if m.agreement is not none %}{{ (m.agreement * 100)|pct }}{{ chart_bar(m.agreement, 1, 'Confirmed or changed verdicts you left as the model gave them') }}<span class="sub">of {{ m.n_items }} verdicts you confirmed or changed</span>{% else %}<span class="muted">none confirmed or changed</span>{% endif %}</td>
     <td>{% for k, rate, n in kinds.get(m.backend, []) %}<span class="kind-row"><span>{{ k }}</span><span class="num">{{ (rate * 100)|pct }}</span></span>{% else %}<span class="muted">not run</span>{% endfor %}</td>
     <td class="nowrap">{% if m.arena %}{{ m.arena.wins }} won, {{ m.arena.losses }} lost{% if m.arena.ties %}, {{ m.arena.ties }} tied{% endif %}{% else %}<span class="muted">no votes</span>{% endif %}</td></tr>{% endfor %}
   </tbody></table></div>

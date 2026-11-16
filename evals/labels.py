@@ -1,7 +1,7 @@
-"""my-labels: the owner's reviewed reports as ground truth for the judge step.
+"""my-labels: the owner's own verdicts as ground truth for the judge step.
 
-Nothing here is invented. A report counts once the owner marked it reviewed; the expected verdict of each
-requirement is the verdict that stands after his overrides. The model under test re-judges the same requirements
+Nothing here is invented. A requirement counts once the owner confirmed it or changed it (a verdict he never looked at is not a
+label); its expected verdict is the one that stands after his overrides. The model under test re-judges the same requirements
 against the CV lines `match.candidates_for` finds today, through `Agents.judge`, the call a real report makes."""
 from collections import Counter
 from dataclasses import dataclass
@@ -15,16 +15,17 @@ from evals.base import EvalError, Plan, Spec, check, rate
 SMALL_N = 30      # below this many items the figures are a hint, not a measure
 KAPPA_MIN_N = 10  # below this many items kappa is not computed at all
 
-NO_LABELS = "mark at least one report as reviewed first"
+NO_LABELS = "confirm or change at least one requirement first"
 
 
-def reviewed_results(db):
-    """Finished fit results the owner marked reviewed, with their items."""
+def labelled_results(db):
+    """Finished fit results with at least one requirement the owner confirmed or changed, with all their items (the
+    model judges them all, as in a real report; only the labelled ones are compared)."""
     out = []
     for r in db.all_results("fit"):
-        if r["reviewed"] and r["status"] == "done":
+        if r["status"] == "done":
             items = db.items_for(r["id"])
-            if items:
+            if any(match.is_labelled(i) for i in items):
                 out.append((r, items))
     return out
 
@@ -60,9 +61,8 @@ def summarise(rows):
     if not n:
         return {"n_items": 0}, ["No item could be compared: every case ended with an error, so there is no agreement figure."]
     metrics = {"agreement": round(agree / n, 4), "n_items": n, "n_overridden": changed}
-    notes = [f"Agreement with the owner's verdicts: {agree} of {n} items, from {len(rows)} reviewed reports. "
-             f"He changed {changed} of them; the others he left as the first model judged them, "
-             "so a model that resembles that first model is favoured.",
+    notes = [f"Agreement with the owner's verdicts: {agree} of {n} items, from {len(rows)} reports. "
+             f"He changed {changed} of them and confirmed the others one by one.",
              "The pass rate is the share of reports where the model matched every item; agreement counts items."]
     if n < KAPPA_MIN_N:
         notes.append(f"Cohen's kappa is not computed: {n} items are fewer than {KAPPA_MIN_N}.")
@@ -79,10 +79,10 @@ def summarise(rows):
 
 class MyLabels(Spec):
     def count(self, db):
-        return len(reviewed_results(db)) if db is not None else 0
+        return len(labelled_results(db)) if db is not None else 0
 
     def plan(self, svc, entry):
-        reviewed = reviewed_results(svc.db)
+        reviewed = labelled_results(svc.db)
         if not reviewed:
             raise EvalError(NO_LABELS)
         cases = []
@@ -106,12 +106,12 @@ class MyLabels(Spec):
             return {"items": [{"text": it["text"], "expected": match.effective_verdict(it), "got": j["verdict"],
                                "agree": match.effective_verdict(it) == j["verdict"],
                                "overridden": bool(it["override_verdict"]), "flag": j["flag"]}
-                              for it, j in zip(items, judged)]}
+                              for it, j in zip(items, judged) if match.is_labelled(it)]}
 
         return Plan(cases=cases, evaluators=[LabelAgreement()], task=task, entry=entry, summarise=summarise)
 
 
 SPEC = MyLabels(
-    name="my-labels", kind="labels", label="My labels (reviewed reports)",
-    description="Reports you marked reviewed. The model judges the same requirements again and is compared with "
-                "the verdicts that stand after your changes. Needs at least one reviewed report.")
+    name="my-labels", kind="labels", label="My labels (confirmed and changed requirements)",
+    description="Requirements you confirmed or changed. The model judges the same requirements again and is compared with "
+                "the verdicts that stand after your changes. Needs at least one confirmed or changed requirement.")

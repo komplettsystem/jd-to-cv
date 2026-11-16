@@ -12,7 +12,7 @@ KINDS = ("synthetic", "labels", "judge", "scope")
 # One sentence per kind on what the ground truth is. The runner puts it first in every summary's notes.
 KIND_NOTES = {
     "synthetic": "Synthetic cases: the expected answer follows from how each case was written, not from anyone's opinion.",
-    "labels": "Own labels: the expected verdicts are the owner's reviewed reports, including the verdicts he changed.",
+    "labels": "Own labels: the expected verdicts are the requirements the owner confirmed or changed.",
     "judge": "Model-judged: the numbers describe agreement with another model, not truth.",
     "scope": "Scope checks: fixed questions with rules checked by code; no model grades the answers.",
 }

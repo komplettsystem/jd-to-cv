@@ -1,5 +1,5 @@
-"""The chat knows how the match percentage is calculated, numbers requirements the way the page does, and gets exact answers
-to "what if" questions from the app's own scoring instead of guessing."""
+"""The chat numbers requirements the way the page does, shows no percentage, and answers "what if" questions with the exact counts
+of minimum requirements and the overall reading re-made on the changed requirements, instead of guessing."""
 import pytest
 
 import match
@@ -11,83 +11,106 @@ def item(text, kind, verdict, **kw):
             "chunk_id": None, **kw}
 
 
-# minimum met (2 x 1), minimum not shown (2 x 0), nice-to-have partly (1 x .5): (2 + 0 + .5) / 5 = 50 %
 A = item("Owned a search product", "minimum", "met")
 B = item("A degree in computer science", "minimum", "not_on_record")
 C = item("Familiar with reranking", "desirable", "partial")
+OVERALL = {"level": "stretch", "summary": "A real jump in scope."}
 
 
 def test_requirements_are_numbered_the_way_the_page_shows_them_minimum_first():
     assert [i["text"] for i in match.display_order([C, A, B])] == [A["text"], B["text"], C["text"]]
 
 
-def test_what_if_numbers_are_exact():
-    now, after = match.rescore([A, B, C])
-    assert round(now) == 50 and round(after) == 50
-    assert round(match.rescore([A, B, C], leave_out=[2])[1], 1) == 83.3        # B (number 2) left out: 2.5 / 3
-    assert round(match.rescore([A, B, C], treat_as_met=[2])[1]) == 90          # B met: 4.5 / 5
-    assert round(match.rescore([C, A, B], leave_out=[2])[1], 1) == 83.3        # numbers follow the page, not the stored order
-    assert match.rescore([A], leave_out=[1])[1] is None                        # nothing left to score
-
-
-def test_a_number_the_report_does_not_have_is_refused():
+def test_what_if_items_follow_the_page_numbers_and_refuse_a_number_the_report_does_not_have():
+    assert [i["text"] for i in match.what_if_items([C, A, B], leave_out=[2])] == [A["text"], C["text"]]   # number 2 is B, not the stored second
+    (changed,) = [i for i in match.what_if_items([A, B, C], treat_as_met=[2]) if i["text"] == B["text"]]
+    assert match.effective_verdict(changed) == "met" and B["verdict"] == "not_on_record"                    # the stored item is untouched
     with pytest.raises(ValueError, match="no requirement 9"):
-        match.rescore([A, B, C], leave_out=[9])
+        match.what_if_items([A, B, C], leave_out=[9])
 
 
-def test_the_scoring_rules_are_written_from_the_constants():
-    text = match.scoring_rules()
-    assert "weight" in text and "divided by" in text
-    assert f"minimum requirement {match.DEFAULT_WEIGHT['minimum']}" in text and "partly 0.5" in text and "not shown 0" in text
+def test_a_chat_bot_without_tools_is_told_it_cannot_re_read_and_is_given_no_formula():
+    assert chat.instructions_for({"tools": 0}) == chat.INSTRUCTIONS
+    assert "cannot re-run it" in chat.INSTRUCTIONS and "divided by" not in chat.INSTRUCTIONS and "match percentage" not in chat.INSTRUCTIONS
+    assert "check_overall" not in chat.INSTRUCTIONS
 
 
-def test_a_chat_bot_without_tools_is_given_the_formula_and_the_figures():
-    entry = {"tools": 0}
-    assert chat.instructions_for(entry) == chat.INSTRUCTIONS
-    assert match.scoring_rules() in chat.INSTRUCTIONS and "how the match percentage is calculated" in chat.INSTRUCTIONS
-    assert "never calculate" in chat.INSTRUCTIONS.lower()
-
-
-def test_a_chat_bot_with_tools_is_not_given_the_formula_and_must_ask_the_match_engine():
+def test_a_chat_bot_with_tools_is_sent_to_check_overall_and_told_the_report_shows_no_percentage():
     text = chat.instructions_for({"tools": 1})
-    assert match.scoring_rules() not in text and "divided by" not in text
-    assert "match engine" in text and "explain_scoring" in text and "rescore" in text
-    assert "what this service offers" in text                                     # the rest of the scope is unchanged
+    assert "check_overall" in text and "rescore" not in text and "explain_scoring" not in text and "divided by" not in text
+    assert "The report shows no percentage" in text and "what this service offers" in text
 
 
-def test_the_report_text_numbers_from_one_and_gives_the_effect_of_each_requirement_when_asked():
-    text = chat.report_text([C, A, B], match.score([C, A, B]), match.minimum_gap([C, A, B]))
+def test_the_report_text_shows_the_overall_reading_and_the_counts_but_no_percentage():
+    text = chat.report_text([C, A, B], OVERALL, match.minimum_gap([C, A, B]))
     lines = [l for l in text.splitlines() if l.startswith("Requirement ")]
     assert lines[0].startswith("Requirement 1 [minimum") and "Owned a search product" in lines[0]
-    assert lines[1].startswith("Requirement 2 [minimum") and "degree" in lines[1]
-    assert "Requirement 0" not in text
-    assert "left out: 83%" in lines[1] and "met: 90%" in lines[1]
-    assert "Overall score: 50% match" in text
-    bare = chat.report_text([C, A, B], match.score([C, A, B]), match.minimum_gap([C, A, B]), effects=False)
-    assert "left out" not in bare and "Requirement 2 [minimum" in bare
+    assert lines[1].startswith("Requirement 2 [minimum") and "degree" in lines[1] and "Requirement 0" not in text
+    assert text.startswith("Overall reading: A stretch. A real jump in scope.")
+    assert "1 of 2 minimum requirements are met or partly met." in text and "%" not in text and "left out" not in text
 
 
-def test_a_figure_that_only_the_match_engine_returned_is_allowed_in_the_answer():
-    deps = chat.ChatDeps(chunks={}, context_text="Overall score: 50% match.", items=[A, B, C])
-    out = chat.ChatAnswerOut(scope="in_scope", answer="Leaving it out gives a match of 83%.", basis=["report"])
-    assert any("83" in p for p in chat.check_answer(out, deps))                   # not known: refused
-    chat.call_engine(deps, "rescore", {"leave_out": [2]})
+def deps_with(items=(A, B, C), overall=OVERALL, level_after="good", fail=False):
+    deps = chat.ChatDeps(chunks={}, context_text="", items=list(items), overall=overall)
+
+    def read(changed):
+        if fail:
+            raise RuntimeError("model down")
+        return {"level": level_after}
+    deps.read_overall = read
+    return deps
+
+
+def test_check_overall_gives_exact_counts_and_the_overall_reading_re_made_on_the_change():
+    deps = deps_with(level_after="good")
+    text = chat.call_overall_check(deps, leave_out=[2])
+    assert "Minimum requirements now: 1 met, 0 partly, 1 not shown. With requirement 2 left out: 1 met, 0 partly, 0 not shown." in text
+    assert "Overall reading now: A stretch. Re-read with requirement 2 left out: Good fit (changed)." in text
+    assert chat.call_overall_check(deps_with(level_after="stretch"), treat_as_met=[2]).endswith("A stretch (unchanged).")
+
+
+def test_the_stored_report_is_not_touched_by_a_check():
+    items = [dict(A), dict(B), dict(C)]
+    before = repr(items)
+    chat.call_overall_check(deps_with(items), leave_out=[1], treat_as_met=[2])
+    assert repr(items) == before
+
+
+def test_without_a_stored_overall_reading_or_when_the_re_read_fails_the_bot_gets_the_counts_and_a_line_not_to_guess():
+    for deps in (deps_with(overall=None), deps_with(fail=True)):
+        text = chat.call_overall_check(deps, leave_out=[2])
+        assert "Minimum requirements now: 1 met" in text and "cannot tell whether the overall reading would change" in text
+    unreadable = deps_with(overall=None)
+    unreadable.read_overall = None
+    assert "cannot tell" in chat.call_overall_check(unreadable, leave_out=[2])
+
+
+def test_a_number_the_report_does_not_have_or_leaving_everything_out_is_refused_in_words():
+    deps = deps_with()
+    assert "no requirement 9" in chat.call_overall_check(deps, leave_out=[9])
+    assert "nothing to read" in chat.call_overall_check(deps, leave_out=[1, 2, 3])
+    assert all(ex["response"]["result"]["isError"] for ex in deps.exchanges)
+
+
+def test_the_overall_reading_is_re_made_at_most_twice_per_answer():
+    deps = deps_with()
+    for _ in range(3):
+        text = chat.call_overall_check(deps, leave_out=[2])
+    assert deps.overall_calls == chat.MAX_OVERALL_CALLS and "cannot tell" in text
+
+
+def test_every_check_is_kept_as_a_request_and_a_response_and_its_figures_are_allowed_in_the_answer():
+    deps = deps_with()
+    out = chat.ChatAnswerOut(scope="in_scope", answer="Leaving it out leaves 1 met and 0 not shown among 1 minimum requirements.", basis=["report"])
+    chat.call_overall_check(deps, leave_out=[2])
+    (ex,) = deps.exchanges
+    assert ex["from"] == "chat bot" and ex["to"] == "overall reading" and ex["request"]["method"] == "tools/call"
+    assert ex["request"]["params"] == {"name": "check_overall", "arguments": {"leave_out": [2], "treat_as_met": []}}
     assert chat.check_answer(out, deps) == []
 
 
-def test_every_call_to_the_engine_is_kept_as_a_request_and_a_response():
-    deps = chat.ChatDeps(chunks={}, context_text="", items=[A, B, C])
-    text = chat.call_engine(deps, "rescore", {"leave_out": [2]})
-    assert text == "Match now: 50%. With requirement 2 left out: 83%."
-    (ex,) = deps.exchanges
-    assert ex["from"] == "chat bot" and ex["to"] == "match engine"
-    assert ex["request"]["method"] == "tools/call" and ex["request"]["params"] == {"name": "rescore", "arguments": {"leave_out": [2], "treat_as_met": []}}
-    assert ex["response"]["result"]["structuredContent"]["match_after"] == 83.3
-    assert "no requirement 9" in chat.call_engine(deps, "rescore", {"leave_out": [9]}) and len(deps.exchanges) == 2
-
-
-def test_the_chat_bot_asks_the_engine_instead_of_calculating(tmp_path, monkeypatch):
-    """A scripted model that calls the rescore tool, then answers with the engine's number."""
+def test_the_chat_bot_calls_check_overall_instead_of_calculating(tmp_path, monkeypatch):
+    """A scripted model that calls the tool, then answers with what it returned."""
     import json as _json
     from pydantic_ai.messages import ModelResponse, TextPart, ToolCallPart, ToolReturnPart
     from pydantic_ai.models.function import FunctionModel
@@ -96,17 +119,17 @@ def test_the_chat_bot_asks_the_engine_instead_of_calculating(tmp_path, monkeypat
     def script(messages, info):
         returned = any(isinstance(p, ToolReturnPart) for m in messages for p in getattr(m, "parts", []))
         if not returned:
-            return ModelResponse(parts=[ToolCallPart("rescore", {"leave_out": [2]})])
-        body = {"scope": "in_scope", "answer": "Leaving requirement 2 out would raise the match to 83%.", "basis": ["report"],
-                "evidence_ids": []}
+            return ModelResponse(parts=[ToolCallPart("check_overall", {"leave_out": [2]})])
+        body = {"scope": "in_scope", "answer": "With the degree left out, 1 of the minimum requirements is met and none is not shown.",
+                "basis": ["report"], "evidence_ids": []}
         return ModelResponse(parts=[TextPart(_json.dumps(body))])
 
     tracing = make_app(tmp_path, monkeypatch).extensions["svc"].tracing
     entry = {"provider": "openrouter", "model_name": "x", "output_mode": "prompted", "tools": 1, "effort": ""}
     rc = chat.ReportChat(entry, tracing, FunctionModel(script, model_name="scripted"), "A posting.", [A, B, C],
                          [{"id": "c1", "section": "Work", "text": "Owned a search product"}],
-                         score_value=match.score([A, B, C]), gap=match.minimum_gap([A, B, C]))
-    assert "left out" not in rc.report                                            # no precomputed effects for a bot with tools
+                         overall=OVERALL, gap=match.minimum_gap([A, B, C]))
+    rc.deps.read_overall = lambda changed: {"level": "stretch"}
     out = rc.ask("What if the degree requirement were removed?")
-    assert out["scope"] == "in_scope" and "83%" in out["content"]
-    assert len(out["exchanges"]) == 1 and out["exchanges"][0]["request"]["params"]["name"] == "rescore"
+    assert out["scope"] == "in_scope" and "none is not shown" in out["content"]
+    assert len(out["exchanges"]) == 1 and out["exchanges"][0]["request"]["params"]["name"] == "check_overall"

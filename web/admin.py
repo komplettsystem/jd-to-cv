@@ -252,10 +252,19 @@ def term_override(item_id):
     return redirect(url_for("admin.run_view", run_id=result["run_id"]) + "#both-ways")
 
 
-@bp.post("/results/<int:result_id>/reviewed")
-def result_reviewed(result_id):
+@bp.post("/items/<int:item_id>/confirm")
+def item_confirm(item_id):
+    item = db().get_item(item_id) or abort(404)
+    db().set_confirmed(item_id, request.form.get("value") == "1")
+    result = db().get_result(item["result_id"])
+    return redirect(url_for("admin.run_view", run_id=result["run_id"]) + f"#item-{item_id}")
+
+
+@bp.post("/results/<int:result_id>/confirm-all")
+def result_confirm_all(result_id):
     result = db().get_result(result_id) or abort(404)
-    db().set_reviewed(result_id, request.form.get("value") == "1")
+    n = db().confirm_remaining(result_id)
+    flash(f"{n} requirement{'s' if n != 1 else ''} confirmed.")
     return redirect(url_for("admin.run_view", run_id=result["run_id"]))
 
 

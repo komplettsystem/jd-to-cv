@@ -13,6 +13,7 @@ def _decorate(items):
         it["eff_verdict"] = match.effective_verdict(it)
         it["eff_weight"] = match.effective_weight(it)
         it["overridden"] = it["override_verdict"] is not None or it["override_weight"] is not None
+        it["state"] = match.item_state(it)
     return items
 
 
@@ -25,7 +26,7 @@ def _decorate_terms(items):
 
 def hide_cv_lines(exchanges):
     """What the chat bot asked the matcher, for a visitor who may not see the CV: each statement keeps its verdict and reason, but the
-    CV line and its section go, in the readable text and in the raw message. Exchanges with the match engine hold no CV text."""
+    CV line and its section go, in the readable text and in the raw message. Exchanges with the chat's overall-reading check hold no CV text."""
     out = []
     for ex in exchanges:
         res = (ex.get("response") or {}).get("result") or {}
@@ -68,6 +69,9 @@ def report_context(svc, run, *, admin, show_cv, can_chat, can_letter):
         r["items"] = items
         r["score"] = match.score(items) if items else None
         r["gap"] = match.minimum_gap(items) if items else (0, 0)
+        r["counts"] = match.verdict_counts(items)
+        r["n_labelled"] = sum(1 for it in items if match.is_labelled(it))
+        r["reviewed"] = bool(items) and r["n_labelled"] == len(items)   # every requirement confirmed or changed
         fit.append(r)
     if not admin:  # a fact the owner added for his own runs is not quoted to the holder of a share link
         for r in fit:

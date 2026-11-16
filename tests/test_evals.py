@@ -229,14 +229,14 @@ def stored_report(svc, reviewed=False, backend=MODEL):
     svc.run_fit(rid)
     assert svc.db.get_result(rid)["status"] == "done"
     if reviewed:
-        svc.db.set_reviewed(rid, True)
+        svc.db.confirm_remaining(rid)
     return rid
 
 
-def test_my_labels_without_a_reviewed_report_fails_with_a_clear_message(svc):
+def test_my_labels_without_a_confirmed_requirement_fails_with_a_clear_message(svc):
     stored_report(svc, reviewed=False)
     run, cases = run_eval(svc, "my-labels")
-    assert run["status"] == "failed" and run["error"] == "mark at least one report as reviewed first"
+    assert run["status"] == "failed" and run["error"] == "confirm or change at least one requirement first"
     assert cases == [] and registry.datasets(svc.db)[1]["n_cases"] == 0
 
 
@@ -259,6 +259,7 @@ def test_my_labels_compares_the_model_with_the_owners_verdicts(svc):
     assert "cohen_kappa" not in s["metrics"]
     notes = " ".join(s["notes"])
     assert "1 of 2 items" in notes and "a hint, not a measure" in notes and "kappa is not computed" in notes
+    assert "left as the first model judged them" not in notes
     assert_every_case_has_a_trace(svc, cases)
     assert svc.db.get_trace(cases[0]["trace_id"])["model_requests"] == 1  # only the judge step ran again
 
@@ -509,7 +510,7 @@ def test_cli_runs_a_dataset_in_the_foreground_and_prints_the_summary(svc):
 def test_cli_reports_a_failed_run_and_lists_datasets(svc):
     out = io.StringIO()
     assert cli.main(["--dataset", "my-labels", "--backend", MODEL], svc=svc, out=out) == 1
-    assert "error: mark at least one report as reviewed first" in out.getvalue()
+    assert "error: confirm or change at least one requirement first" in out.getvalue()
     out = io.StringIO()
     assert cli.main(["--list"], svc=svc, out=out) == 0
     assert out.getvalue().count("\n") == 7 and "overall-reading" in out.getvalue()
@@ -575,3 +576,14 @@ def test_overall_reading_records_a_strong_fit_for_an_unrelated_posting_and_a_fol
     # the contact detail is stopped by the app's own check, so that case ends in an error, not in a shown reading
     assert by["hidden-instruction"]["passed"] == 0
     assert run["summary"]["pass_rate"] < 1.0
+
+
+def test_my_labels_compares_only_requirements_the_owner_confirmed_or_changed(svc):
+    rid = stored_report(svc, reviewed=False)                 # two requirements, none reviewed
+    items = svc.db.items_for(rid)
+    svc.db.set_confirmed(items[1]["id"], True)               # only the second one is his label
+    run, cases = run_eval(svc, "my-labels")
+    assert run["status"] == "done" and run["n_cases"] == 1
+    out = cases[0]["output"]["items"]
+    assert [(i["expected"], i["got"], i["agree"]) for i in out] == [("not_on_record", "not_on_record", True)]
+    assert run["summary"]["metrics"]["n_items"] == 1

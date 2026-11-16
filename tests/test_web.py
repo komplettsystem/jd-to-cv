@@ -95,7 +95,7 @@ def test_a_visitor_pastes_a_posting_and_gets_a_report_with_cited_cv_lines(visito
     r = public_check(visitor)
     assert r.status_code == 302
     page = visitor.get(f"/r/{token_of(r)}").data.decode()
-    assert re.search(r"\d+% match", page) and "143-question" in page
+    assert re.search(r"\d+ met, \d+ partly, \d+ not shown", page) and "% match" not in page and "143-question" in page
     assert "Ada Example" in page and "not written or sent by Ada Example" in page
 
 

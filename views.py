@@ -145,11 +145,11 @@ def model_stats(db):
         if r["kind"] == "fit" and r["id"] in fits:
             if fits[r["id"]]["score"] is not None:
                 s["scores"].append(fits[r["id"]]["score"])
-            if r["reviewed"]:
-                items = fits[r["id"]]["items"]
+            labelled = [i for i in fits[r["id"]]["items"] if match.is_labelled(i)]   # confirmed or changed: his labels
+            if labelled:
                 s["reviewed"] += 1
-                s["n_items"] += len(items)
-                s["unchanged"] += sum(1 for i in items if match.effective_verdict(i) == i["verdict"]
+                s["n_items"] += len(labelled)
+                s["unchanged"] += sum(1 for i in labelled if match.effective_verdict(i) == i["verdict"]
                                       and i["override_weight"] is None)
     out = []
     for s in sorted(rows.values(), key=lambda x: x["backend"]):

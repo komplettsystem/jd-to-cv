@@ -270,5 +270,51 @@
   "state": null,
   "commits": [],
   "docs": []
+ },
+ {
+  "id": "counts-not-percentage",
+  "date": "2026-11-14",
+  "kind": "feature",
+  "deployed": true,
+  "title": "Visitors see met, partly and not shown counts and the overall reading, not a match percentage",
+  "text": "The judge's percentage was far above the owner's own reading on postings that are a stretch for the CV, and no judge variant tested closed the gap. The report now shows the minimum requirements as three counts and the overall reading. The percentage is still worked out and shown on the admin page. The owner decided this after seeing the numbers.",
+  "measured": "On the owner's four fully reviewed reports the live judge was above his own verdicts by 56, 19, 0 and 8 points (mean 20.8). Against his 37 labelled requirements the judge agreed on 55 to 67% across five runs of the same rules, and none of thirteen variants did better. Six confidence signals did not separate its wrong verdicts from its right ones. One labeller, four reports: a hint, not a measure.",
+  "state": null,
+  "commits": [
+   "0468d01"
+  ],
+  "docs": [
+   "docs/WHY-NO-MATCH-PERCENTAGE.md"
+  ]
+ },
+ {
+  "id": "check-overall",
+  "date": "2026-11-14",
+  "kind": "feature",
+  "deployed": true,
+  "title": "The chat answers what-if questions with exact counts and a re-made overall reading",
+  "text": "Visitors no longer see a percentage, so the chat no longer quotes or recalculates one. check_overall returns the exact counts of minimum requirements before and after a change, worked out in code, and the overall reading re-made by the chat model with the change applied. It never touches the stored report.",
+  "measured": null,
+  "state": null,
+  "commits": [
+   "a5f30f5"
+  ],
+  "docs": [
+   "docs/WHY-NO-MATCH-PERCENTAGE.md"
+  ]
+ },
+ {
+  "id": "engine-removed",
+  "date": "2026-11-15",
+  "kind": "code",
+  "deployed": true,
+  "title": "The separate scoring service (match_engine.py) is removed",
+  "text": "It only served the chat's recalculation tool, which check_overall replaced. Nothing else used it, and recalculation is not part of the planned API and MCP offer. Old chat messages addressed to it are still displayed.",
+  "measured": null,
+  "state": null,
+  "commits": [
+   "6d10984"
+  ],
+  "docs": []
  }
 ]

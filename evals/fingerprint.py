@@ -28,5 +28,5 @@ def current(entry, spec):
     return {"model": entry.get("model_name") or entry["id"], "effort": entry.get("effort") or "", "output_mode": entry.get("output_mode") or "",
             "max_tokens": agents.SETTINGS["max_tokens"], "whole_cv_chars": agents.WHOLE_CV_CHARS,
             "equivalent_experience_lines": bool(match.EQUIVALENT.pattern.startswith("\\b(?:equivalent")),
-            "judge_rules": _h(agents.JUDGE_RULES), "chat_rules": _h(chat.INSTRUCTIONS_WITH_ENGINE), "chat_matcher_calls_max": chat.MAX_MATCHER_CALLS, "extract_rules": _h(agents.EXTRACT_RULES),
+            "judge_rules": _h(agents.JUDGE_RULES), "chat_rules": _h(chat.INSTRUCTIONS_WITH_TOOLS), "chat_matcher_calls_max": chat.MAX_MATCHER_CALLS, "extract_rules": _h(agents.EXTRACT_RULES),
             "dataset": _h(json.dumps(cases, sort_keys=True, default=str)), "code": code_version()}

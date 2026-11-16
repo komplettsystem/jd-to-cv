@@ -15,15 +15,17 @@
 {% endmacro %}
 
 {% macro result_fields(r) %}
+  {% set c = r.counts %}
   <div class="fields">
-    <div class="field f-4 field-fill"><span class="field-label">Result</span>
-      {% if r.score is not none %}<p class="field-big">{{ "%.0f"|format(r.score) }}% match</p>{{ chart_meter(r.score, 'Match') }}
-      {% else %}<p class="field-mid">No score</p><p class="field-sub">{% if r['items'] %}Every requirement has weight 0, so there is nothing to add up.{% else %}No requirements were found in this posting, so there is nothing to score.{% endif %}</p>{% endif %}</div>
-    <div class="field f-4"><span class="field-label">Minimum requirements</span>
-      {% if r.gap[1] %}<p class="field-value">{{ r.gap[1] - r.gap[0] }} of {{ r.gap[1] }} minimum requirements are met or partly met</p>{% else %}<p class="field-value">The posting names no minimum requirements</p>{% endif %}
+    <div class="field f-6 field-fill"><span class="field-label">Minimum requirements</span>
+      {% if r.gap[1] %}<p class="field-big field-big-long">{{ c.met }} met, {{ c.partial }} partly, {{ c.not_on_record }} not shown</p><p class="field-sub">Of {{ r.gap[1] }} minimum requirements in the posting.</p>{% else %}<p class="field-value">The posting names no minimum requirements</p>{% endif %}
       <p class="field-sub">A requirement the CV does not show is marked “Not shown”. That does not mean the person lacks it.</p></div>
-    <div class="field f-4"><span class="field-label">How to read this</span>
-      <p class="field-sub">Each verdict is a model's reading of the posting against the CV, not a fact. Minimum requirements count twice as much as desirable ones, and “partly” counts half.</p></div>
+    {% if admin %}<div class="field f-3"><span class="field-label">Score (not shown to visitors)</span>
+      {% if r.score is not none %}<p class="field-mid">{{ "%.0f"|format(r.score) }}% match</p>
+      {% else %}<p class="field-mid">No score</p><p class="field-sub">{% if r['items'] %}Every requirement has weight 0, so there is nothing to add up.{% else %}No requirements were found in this posting, so there is nothing to score.{% endif %}</p>{% endif %}
+      <p class="field-sub">Minimum requirements count twice as much as desirable ones, and “partly” counts half.</p></div>{% endif %}
+    <div class="field {{ 'f-3' if admin else 'f-6' }}"><span class="field-label">How to read this</span>
+      <p class="field-sub">Each verdict is a model's reading of the posting against the CV, not a fact. “Partly” means related work is on record, not that the requirement is covered.</p></div>
   </div>
 {% endmacro %}
 
@@ -37,7 +39,15 @@
         <p class="exchange-line"><span class="exchange-who">Matcher → chat bot</span> {{ ex.response.result.content[0].text }}</p>
         <pre class="exchange-raw">{{ ex.request|tojson(indent=2) }}
 {{ ex.response|tojson(indent=2) }}</pre>
-        <p class="exchange-note">The matcher is a model that runs the same judging step as the report, with the same rules. It read the whole CV for these statements. What it says is a reading of the CV: it never changes the report or the percentage.</p>
+        <p class="exchange-note">The matcher is a model that runs the same judging step as the report, with the same rules. It read the whole CV for these statements. What it says is a reading of the CV: it never changes the report.</p>
+      </details>
+      {% elif ex.to == 'overall reading' %}
+      <details class="exchange"><summary>The chat bot checked the overall reading</summary>
+        <p class="exchange-line"><span class="exchange-who">Chat bot → overall reading</span> {{ ex.request.params.name }} {{ ex.request.params.arguments|tojson }}</p>
+        <p class="exchange-line"><span class="exchange-who">Overall reading → chat bot</span> {{ ex.response.result.content[0].text }}</p>
+        <pre class="exchange-raw">{{ ex.request|tojson(indent=2) }}
+{{ ex.response|tojson(indent=2) }}</pre>
+        <p class="exchange-note">The counts are worked out in code. The overall reading is re-made by a model with the change applied, so it can differ a little from run to run. Neither changes the report.</p>
       </details>
       {% else %}
       <details class="exchange"><summary>The chat bot asked the match engine</summary>
@@ -67,6 +77,12 @@
       <div class="req-right">
       <div class="req-verdict">
         {{ ui.stamp(it.eff_verdict) }}
+        {% if admin %}<div class="req-review no-print">
+          <span class="tag{% if it.state == 'unreviewed' %} tag-solid{% endif %}">{{ {'unreviewed': 'Not reviewed', 'confirmed': 'Confirmed', 'changed': 'Changed'}[it.state] }}</span>
+          {% if it.state != 'changed' %}<form method="post" action="{{ url_for('admin.item_confirm', item_id=it.id) }}">{{ csrf_field() }}
+            <input type="hidden" name="value" value="{{ 0 if it.state == 'confirmed' else 1 }}">
+            <button class="quiet">{{ 'Undo confirm' if it.state == 'confirmed' else 'Confirm' }}</button></form>{% endif %}
+        </div>{% endif %}
         {% if it.overridden or admin %}<span class="req-meta">
           {% if admin and it.line_overridden %}<span class="tag">your line</span>{% endif %}
           {% if it.overridden %}<span class="tag">{{ 'overridden' if admin else 'changed by ' ~ owner_name ~ ' from the model\'s ' ~ it.verdict|verdict_label }}</span>{% endif %}
@@ -141,11 +157,13 @@
     {{ requirement_rows(r, is_primary) }}
     {% if admin %}
     <div class="submit-row no-print actions">
-      <form method="post" action="{{ url_for('admin.result_reviewed', result_id=r.id) }}">{{ csrf_field() }}
-        <input type="hidden" name="value" value="{{ 0 if r.reviewed else 1 }}">
-        <button class="quiet">{{ 'Reviewed (undo)' if r.reviewed else 'Mark reviewed' }}</button></form>
+      {% set todo = r['items']|length - r.n_labelled %}
+      <form method="post" action="{{ url_for('admin.result_confirm_all', result_id=r.id) }}">{{ csrf_field() }}
+        <button class="quiet" {% if not todo %}disabled{% endif %}>Confirm all remaining ({{ todo }})</button></form>
+      <span>{{ r.n_labelled }} of {{ r['items']|length }} requirements reviewed</span>
+      {% if r.reviewed %}<span class="tag">Reviewed</span>{% endif %}
       {% if r.trace_id %}<a href="{{ url_for('admin.trace', trace_id=r.trace_id) }}">Open the trace</a>{% endif %}
-      <p class="form-note">Mark a report reviewed once its verdicts are right. Reviewed reports become your labels in the evals.</p>
+      <p class="form-note">Confirm a requirement when you have looked at its verdict and agree, or change it. Only confirmed and changed requirements become your labels in the evals; a verdict you never looked at is not one.</p>
     </div>
     {% endif %}
   {% endif %}
@@ -161,7 +179,7 @@
   <div class="form-body"><p class="notice">{% if admin %}The overall reading failed: {{ overall.error }}{% else %}An overall reading could not be produced for this report. The requirement check is complete.{% endif %}</p></div>
   {% else %}
   <div class="form-body">
-    <p class="form-note">A model's reading of the whole CV against the whole posting, the way a hiring manager would read it. It is not a score and does not change the percentage. “Inferred” means the CV makes a point likely without stating it; check those points before relying on them.</p>
+    <p class="form-note">A model's reading of the whole CV against the whole posting, the way a hiring manager would read it. It is not a score and does not change the verdicts or the counts. “Inferred” means the CV makes a point likely without stating it; check those points before relying on them.</p>
     {% for kind, title in [('strength', 'What fits'), ('expected', 'What the CV makes likely'), ('gap', 'Where the CV and the role differ')] %}
     {% set pts = overall.points|selectattr('kind', 'equalto', kind)|list %}
     {% if pts %}<h3>{{ title }}</h3>

@@ -384,9 +384,12 @@ class Service:
                 earlier = [m for m in self.db.messages_for(chat["id"]) if m["id"] < message_id]
                 question = earlier[-1]  # the user message stored just before this answer
                 turns = [(m["role"], m["content"]) for m in earlier[:-1] if m["status"] == "done" and m["content"]]
+                overall = json.loads(result["overall"]) if result.get("overall") else None
+                if overall and "error" in overall:
+                    overall = None
                 rc = ReportChat(entry, self.tracing, self.model_factory(entry), run["posting_text"], items,
                                 self._chunks(run, public),
-                                score_value=match.score(items), gap=match.minimum_gap(items))
+                                overall=overall, gap=match.minimum_gap(items))
                 with self.tracing.subject("match.chat", "chat_message", message_id, entry, public) as trace_id:
                     self.db.update_message(message_id, trace_id=trace_id)
                     out = rc.ask(question["content"], turns, skeptic=(msg["mode"] == "skeptic"))

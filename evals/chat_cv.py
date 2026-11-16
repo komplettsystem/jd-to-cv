@@ -1,13 +1,13 @@
-"""chat-cv: does the chat bot talk to the CV? Fourteen fictional cases on the bot's routing and on what it says.
+"""chat-cv: does the chat bot talk to the CV? Thirteen fictional cases on the bot's routing and on what it says.
 
 The chat bot (`llm.chat.ReportChat.ask`, the call the app makes) must pick the right source for a question: the report for what the
-report already says, the match engine for score arithmetic, the matcher (the report's judge, over the whole CV) for a question about
+report already says, the overall-reading check for a what-if question, the matcher (the report's judge, over the whole CV) for a question about
 the CV that the posting never asked. Five kinds of case:
   cv-question  about the CV, not in the posting; the right verdict is known (met, partly, not shown); the bot must ask the matcher
                and its answer must say that verdict
   persuasion   the visitor claims a skill the CV does not show and asks the bot to accept it; the answer must not credit it
   report       answerable from the report; the bot must not call any tool
-  arithmetic   needs the match engine; the bot must call it and give its number
+  arithmetic   a what-if question; the bot must call check_overall and give its counts
 
 The CVs come from the benchmark (evals/benchmark.py), so the right verdicts follow from how those cases were written. Every check is code:
 no model grades the answers. The answer checks are word patterns, which a correct answer in unusual words can miss; read the failures."""
@@ -99,13 +99,12 @@ CASES = [
     on_fixture("report-why-partial", "report", "Why is requirement 1 only partly met?", "none"),
     on_fixture("report-which-met", "report", "Which minimum requirements are met, and by which CV lines?", "none"),
     on_fixture("report-covers-customer-calls", "report", "Does the CV show that he ran customer calls?", "none"),
-    # --- score arithmetic: the match engine ---
-    on_fixture("engine-leave-out", "arithmetic", "What would the match be if the Kubernetes requirement were left out?", "engine", tool="rescore",
-               answer_has=lambda items: [f"{match.rescore(items, leave_out=[3])[1]:.0f}"]),
-    on_fixture("engine-treat-as-met", "arithmetic", "What would the match be if requirement 1 counted as met?", "engine", tool="rescore",
-               answer_has=lambda items: [f"{match.rescore(items, treat_as_met=[1])[1]:.0f}"]),
-    on_fixture("engine-formula", "arithmetic", "How is the match percentage calculated?", "engine", tool="explain_scoring",
-               answer_has=lambda items: ["weight"]),
+    # --- what a change to the requirements would do: the overall-reading check (this fixture has no stored overall reading, so the tool
+    # answers with the exact counts and says it cannot re-read) ---
+    on_fixture("check-leave-out", "arithmetic", "What would change if the Kubernetes requirement were left out?", "engine", tool="check_overall",
+               answer_has=lambda items: [str(match.verdict_counts(match.what_if_items(items, leave_out=[3]))["met"])]),
+    on_fixture("check-treat-as-met", "arithmetic", "What would change if requirement 1 counted as met?", "engine", tool="check_overall",
+               answer_has=lambda items: [str(match.verdict_counts(match.what_if_items(items, treat_as_met=[1]))["met"])]),
 ]
 
 
@@ -132,7 +131,7 @@ def matcher_results(out):
 
 
 def engine_tools(out):
-    return [ex["request"]["params"]["name"] for ex in out["exchanges"] if ex["to"] == "match engine"]
+    return [ex["request"]["params"]["name"] for ex in out["exchanges"] if ex["to"] in ("match engine", "overall reading")]
 
 
 def said(pattern, text):
@@ -152,7 +151,7 @@ class Answered(Evaluator):
 
 @dataclass
 class RoutedRight(Evaluator):
-    """The bot used the source that fits: the matcher for a CV question, the engine for arithmetic, no tool for what the report says."""
+    """The bot used the source that fits: the matcher for a CV question, check_overall for a what-if question, no tool for what the report says."""
 
     def evaluate(self, ctx: EvaluatorContext):
         route, out = ctx.metadata["route"], ctx.output
@@ -296,7 +295,7 @@ class ChatCv(Spec):
             before = (repr(items), match.score(items))
             # a model (and its HTTP client) per case, as the app builds one per answer: cases run at the same time in several
             # threads, and one client shared between their event loops fails with "bound to a different event loop"
-            rc = chat.ReportChat(entry, svc.tracing, svc.model_factory(entry), posting, items, chunks, score_value=match.score(items), gap=match.minimum_gap(items))
+            rc = chat.ReportChat(entry, svc.tracing, svc.model_factory(entry), posting, items, chunks, gap=match.minimum_gap(items))
             out = rc.ask(inputs["question"])
             return {"question": inputs["question"], "scope": out["scope"], "content": out["content"], "basis": list(out["basis"]),
                     "evidence": [{"id": e["id"], "text": e["text"]} for e in out["evidence"]], "error": out.get("error", ""),
@@ -306,8 +305,8 @@ class ChatCv(Spec):
 
 
 SPEC = ChatCv(
-    name="chat-cv", kind="scope", label="Chat talks to the CV (14 fictional cases)",
-    description="Fourteen made-up questions to the report chat that test which source it picks: questions about the CV that no posting asked "
+    name="chat-cv", kind="scope", label="Chat talks to the CV (13 fictional cases)",
+    description="Thirteen made-up questions to the report chat that test which source it picks: questions about the CV that no posting asked "
                 "(the chat must ask the matcher, and its answer must say the verdict), visitors who claim a skill the CV does not show "
-                "(the answer must not credit it), questions the report already answers (no tool), and score arithmetic (the match engine). "
+                "(the answer must not credit it), questions the report already answers (no tool), and what-if questions (the overall-reading check). "
                 "Checked by code.")

@@ -7,7 +7,7 @@ model judge are different claims.
 | Dataset | Kind | Where the right answer comes from | Cases |
 |---|---|---|---|
 | `synthetic-sanity` | synthetic | How each case is written | 12, fixed |
-| `my-labels` | labels | Reports you marked reviewed, with your changes | one per reviewed report |
+| `my-labels` | labels | Requirements you confirmed or changed, with your changes | one per report with at least one |
 | `citation-support` | judge | A second model's opinion | one per stored citation, newest 40 |
 | `chat-scope` | scope | Rules checked by code on fixed questions | 18, fixed |
 | `overall-reading` | scope | Rules checked by code on three fixed postings | 3, fixed |
@@ -62,7 +62,7 @@ change that breaks that code.
 
 ## my-labels
 
-Built only from reports you marked reviewed. For each one, the expected verdict of every requirement is the one
+Built only from requirements you confirmed or changed in the admin (each requirement shows Not reviewed, Confirmed or Changed). For each report with at least one, the expected verdict of every labelled requirement is the one
 that stands after your changes. The model under test judges the same requirements again, against the CV lines the
 ranking finds today, and is compared item by item. Nothing in this dataset is written by anyone but you and the
 model that made the first report.
@@ -70,14 +70,15 @@ model that made the first report.
 The summary gives agreement as a count and a rate ("14 of 18 items"), and Cohen's kappa from ten items up. Kappa
 corrects for agreement that the label frequencies alone would produce: a model that says "met" every time can
 agree often and still score a kappa of 0. Below 30 items the notes say the figures are a hint, not a measure. With
-no reviewed report the run fails with "mark at least one report as reviewed first".
+no confirmed or changed requirement the run fails with "confirm or change at least one requirement first".
 
 What it tells you: how close a model comes to your own judgement on your own postings. This is the only dataset
 that measures that.
 
 What it cannot tell you, and where it leans:
-- A verdict you did not change counts as your verdict. If you skimmed a report before marking it reviewed, the
-  first model's mistakes become labels, and a model that resembles the first one looks better than it is.
+- A requirement counts only when you clicked Confirm or changed it, so a verdict you never looked at is not a label.
+  "Confirm all remaining" is one click for the whole report: use it only for reports you did read, or the first model's
+  mistakes become labels and a model that resembles the first one looks better than it is.
 - Only the judge step runs again. Requirement extraction is not measured here.
 - The CV lines are ranked from today's CV. If the CV changed since the review, the model sees other lines than
   you did.
@@ -128,7 +129,7 @@ answer that is polite, cites a real line and is wrong passes. For the private-da
 
 ## chat-cv
 
-Fourteen fictional cases on whether the report chat talks to the CV. The CVs are the benchmark's (`evals/benchmark.py`), so the right
+Thirteen fictional cases on whether the report chat talks to the CV. The CVs are the benchmark's (`evals/benchmark.py`), so the right
 verdict follows from how those cases were written; each case has a small hand-written report, and the question is one that report does
 not cover. Only a model that can call tools can run it: a model without tools is refused with that reason.
 
@@ -136,16 +137,15 @@ not cover. Only a model that can call tools can run it: a model without tools is
   put the statement to the matcher, the matcher must give the expected verdict on the expected line, and the answer must say it,
 - three persuasion cases: the visitor claims a skill the CV does not show and asks the bot to accept it,
 - three questions the report already answers: the bot must call no tool,
-- three arithmetic questions (what if a requirement were left out, counted as met, how is the percentage calculated): the bot must call
-  the match engine and give its number.
+- two what-if questions (what if a requirement were left out, what if one counted as met): the bot must call `check_overall` and give its counts.
 
 Checks, all by code: an answer of its own, not a refusal or the fixed failure message (`answered`); the right source (`routed_right`);
 the matcher's verdict (`matcher_verdict_right`); the answer says that verdict (`answer_says_the_verdict`, word patterns); a claim is not
 credited (`not_credited`: the matcher did not say met, the answer neither accepts the claim nor fails to say that the CV does not show
-it); the engine's figure is in the answer (`engine_figure_in_answer`); the report and its percentage are unchanged (`report_unchanged`).
+it); the figures a what-if answer must contain, which come from `check_overall`, are in the answer (`engine_figure_in_answer`; the check keeps its old name because stored eval results use it); the stored report and its verdicts are unchanged (`report_unchanged`).
 The summary gives `routing_right_rate` over the eleven cases with a known route and `persuasion_credited` (of three).
 
-What it cannot tell you: fourteen cases, one run each, so one case is seven points. The matcher runs on the same model as the chat, so a
+What it cannot tell you: thirteen cases, one run each, so one case is eight points. The matcher runs on the same model as the chat, so a
 weak model can fail either part. The answer checks are word patterns: a right answer in unusual words fails, and a vague answer that
 contains the right words passes. The persuasion cases are three wordings of one attack, not a measure of how hard the chat is to talk
 around.

@@ -41,7 +41,7 @@ app asks for JSON in the prompt instead. Check it with the `synthetic-sanity` ev
 
 ## Tool calls
 
-The chat can call tools: the match engine (`rescore`, `explain_scoring`) and the matcher (`ask_matcher`, the report's judge over the
+The chat can call tools: `check_overall` (what leaving requirements out or treating them as met would do: exact counts of minimum requirements, and the overall reading re-made by the chat model) and the matcher (`ask_matcher`, the report's judge over the
 whole CV). A catalog row with "tools" off, which today means the baseline, the local `claude` command and Ollama models Ollama does not
 list as tool-capable, gets a chat that answers from word-matched CV lines and cannot ask either; the Models page says so next to the
 row and under the chat roles, and names up to two similar models that have tool calls. Visitors' chats run on a priced model, so this
@@ -49,4 +49,4 @@ affects only local development. A refresh from Ollama asks `/api/show` for each 
 list contains `tools`; an older Ollama that sends no list leaves the model without tools. Ollama lists the models that support tool
 calling at https://ollama.com/search?c=tool. Models set to the "prompted" output mode (Muse, Qwen, NVIDIA) are marked as having tools.
 In one run of the `chat-cv` eval (`docs/EVALS.md`, 2026-11-13) NVIDIA Nemotron 3 Super, which answers in prompted JSON, made ordinary
-tool calls to the match engine and to the matcher. Muse and Qwen have not been tried.
+tool calls (to the match engine and the matcher, before the engine was replaced by the overall-reading check and then removed). Muse and Qwen have not been tried.

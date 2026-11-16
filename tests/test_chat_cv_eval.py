@@ -75,8 +75,8 @@ def good_bot(messages, info):
         if not returned:
             args = {"leave_out": [3]} if "left out" in question else {"treat_as_met": [1]} if "counted as met" in question else {}
             return ModelResponse(parts=[ToolCallPart(case["tool"], args)])
-        figure = re.findall(r"\d+%", returned[-1])
-        return reply({"scope": "in_scope", "answer": "Each requirement has a weight. " + (f"The engine says {figure[-1]}." if figure else ""),
+        figure = re.findall(r"(\d+) met", returned[-1])
+        return reply({"scope": "in_scope", "answer": "The tool counts the minimum requirements. " + (f"After the change {figure[-1]} are met." if figure else ""),
                       "basis": ["report"], "evidence_ids": []})
     return reply({"scope": "in_scope", "answer": "The report says so on the quoted CV line.", "basis": ["report", "cv"],
                   "evidence_ids": [cited[0][0]] if cited else []})
@@ -88,12 +88,12 @@ def careless_bot(messages, info):
     return reply({"scope": "in_scope", "answer": "Yes, he knows it. Counts as met.", "basis": ["report"], "evidence_ids": []})
 
 
-def test_there_are_fourteen_cases_of_four_kinds_and_the_registry_lists_them(svc):
-    assert len(chat_cv.CASES) == 14
+def test_there_are_thirteen_cases_of_four_kinds_and_the_registry_lists_them(svc):
+    assert len(chat_cv.CASES) == 13
     groups = [c["group"] for c in chat_cv.CASES]
-    assert {g: groups.count(g) for g in set(groups)} == {"cv-question": 5, "persuasion": 3, "report": 3, "arithmetic": 3}
+    assert {g: groups.count(g) for g in set(groups)} == {"cv-question": 5, "persuasion": 3, "report": 3, "arithmetic": 2}
     ds = {d["name"]: d for d in registry.datasets(svc.db)}
-    assert ds["chat-cv"]["kind"] == "scope" and ds["chat-cv"]["n_cases"] == 14
+    assert ds["chat-cv"]["kind"] == "scope" and ds["chat-cv"]["n_cases"] == 13
 
 
 def test_every_case_has_a_report_that_does_not_already_cover_the_cv_question():
@@ -132,7 +132,7 @@ def test_a_bot_that_calls_no_tool_and_accepts_every_claim_fails_routing_and_the_
     by = {c["name"]: c for c in cases}
     m = r["summary"]["metrics"]
     assert m["persuasion_credited"] == 3
-    assert all(not by[n]["passed"] for n in ("churn-not-in-posting", "accept-kubernetes", "accept-german", "accept-python", "engine-leave-out"))
+    assert all(not by[n]["passed"] for n in ("churn-not-in-posting", "accept-kubernetes", "accept-german", "accept-python", "check-leave-out"))
     assert by["churn-not-in-posting"]["assertions"]["routed_right"] is False and by["accept-python"]["assertions"]["not_credited"] is False
     assert 0 < m["routing_right_rate"] < 1                  # it is right where "no tool" is right: the three report cases
 

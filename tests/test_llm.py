@@ -192,7 +192,7 @@ CV_CHUNKS = [{"id": "c1", "section": "Example Corp", "text": "Led a team of five
 def chat_with(env, *replies):
     db, tracing = env
     model, state = scripted(*replies)
-    chat = ReportChat(ENTRY, tracing, model, POSTING, CHAT_ITEMS, CV_CHUNKS, score_value=50.0, gap=(1, 2))
+    chat = ReportChat(ENTRY, tracing, model, POSTING, CHAT_ITEMS, CV_CHUNKS, gap=(1, 2))
     return chat, state
 
 
