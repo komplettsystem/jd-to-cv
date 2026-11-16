@@ -49,6 +49,14 @@ Commit, then run `deploy/deploy.sh <server-ip>` again. Only committed files are 
 live in `/opt/reverse-apply/state` and are never replaced by a deploy. The server also rebuilds weekly with fresh
 base images (`update.sh`, run by cron) and reboots after security updates.
 
+## Updating from GitHub (optional)
+
+The `deploy` job in `.github/workflows/tests.yml` ships the same files without your machine. It runs only after the tests pass and only for a push to `main`, so pushing to `main` is the owner's decision to deploy: there is no second approval. To add one, set a required reviewer on the `production` environment in GitHub (Settings, Environments).
+
+It connects with its own SSH key, which the server accepts only for `deploy/deploy-receive.sh` (installed once with `deploy/install-ci-key.sh`): no shell, no other command. The job never touches `state/.env`, so the OpenRouter key and the other settings stay where `deploy.sh` put them, and a change to them still goes through `deploy/deploy.sh` from the owner's machine.
+
+The environment holds three secrets (`DEPLOY_SSH_KEY`, `DEPLOY_HOST`, `DEPLOY_KNOWN_HOSTS`, the last one pins the server's host key) and one variable (`DEPLOY_URL`, the address checked after the restart). Create the environment, with `main` as the only allowed branch, before the workflow is first pushed: GitHub creates a missing environment without any protection.
+
 ## What to know
 
 - **One process.** Jobs (reports, chat answers, letters) run in threads of the web process, and the per-visitor limits

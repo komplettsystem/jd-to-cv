@@ -17,8 +17,9 @@
 {% macro result_fields(r) %}
   {% set c = r.counts %}
   <div class="fields">
-    <div class="field f-6 field-fill"><span class="field-label">Minimum requirements</span>
-      {% if r.gap[1] %}<p class="field-big field-big-long">{{ c.met }} met, {{ c.partial }} partly, {{ c.not_on_record }} not shown</p><p class="field-sub">Of {{ r.gap[1] }} minimum requirements in the posting.</p>{% else %}<p class="field-value">The posting names no minimum requirements</p>{% endif %}
+    {% set mh = run.min_heading if run is defined and run else '' %}
+    <div class="field f-6 field-fill"><span class="field-label">{{ mh or 'Minimum requirements' }}</span>
+      {% if r.gap[1] %}<p class="field-big field-big-long">{{ c.met }} met, {{ c.partial }} partly, {{ c.not_on_record }} not shown</p><p class="field-sub">{% if mh %}Of {{ r.gap[1] }} items under “{{ mh }}” in the posting.{% else %}Of {{ r.gap[1] }} minimum requirements in the posting.{% endif %}</p>{% else %}<p class="field-value">The posting names no minimum requirements</p>{% endif %}
       <p class="field-sub">A requirement the CV does not show is marked “Not shown”. That does not mean the person lacks it.</p></div>
     {% if admin %}<div class="field f-3"><span class="field-label">Score (not shown to visitors)</span>
       {% if r.score is not none %}<p class="field-mid">{{ "%.0f"|format(r.score) }}% match</p>

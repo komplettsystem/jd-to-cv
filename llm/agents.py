@@ -132,6 +132,7 @@ class Agents:
         self.tracing = tracing
         self.model = model or build_model(entry, settings)
         self.reads_whole_cv = True      # match.run_match then passes the CV's lines too, for judge() to show them whole when the CV is short
+        self.headings = {}             # the posting's own names for its two lists, once the first step has read the posting
         self.on_posting_facts = None   # called with (title, company, list headings) as soon as the first step has read the posting
 
     def _agent(self, name, output_type, instructions, retries=2):
@@ -146,9 +147,10 @@ class Agents:
     # backend protocol used by match.run_match
     def extract_requirements(self, posting):
         out = self._agent("extract-requirements", RequirementsOut, EXTRACT_RULES).run_sync(_wrap(posting), usage_limits=LIMITS).output
+        self.headings = {"minimum": _in_posting(out.minimum_heading, posting), "desirable": _in_posting(out.desirable_heading, posting)}
         if self.on_posting_facts:   # shown on the page while the rest of the match is still running
             title, company = _in_posting(out.title, posting), _in_posting(out.company, posting)
-            headings = {"minimum": _in_posting(out.minimum_heading, posting), "desirable": _in_posting(out.desirable_heading, posting)}
+            headings = self.headings
             if title or company or any(headings.values()):
                 self.on_posting_facts(title, company, headings)
         return match.parse_requirements(out.model_dump())
@@ -198,8 +200,8 @@ class Agents:
             blocks.insert(0, preface)
         return agent, "\n\n".join(blocks), candidates
 
-    def overall(self, posting, items, chunks):
-        return overall_mod.read(lambda name, out, ins: self._agent(name, out, ins), posting, items, chunks)
+    def overall(self, posting, items, chunks, headings=None):
+        return overall_mod.read(lambda name, out, ins: self._agent(name, out, ins), posting, items, chunks, headings or self.headings)
 
     def terms(self, posting, criteria):
         lines = [f"Criterion {i} [{c['importance']}] {c['name']}: {c['description']}" for i, c in enumerate(criteria)]

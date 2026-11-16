@@ -89,10 +89,20 @@ class ChatDeps:
     overall: dict | None = None                    # the stored overall reading of this report ({"level", "summary", ...}), if it has one
     read_overall: Callable | None = None           # re-reads the whole CV against the posting for given items; None for a bot without tools
     overall_calls: int = 0
+    headings: dict = field(default_factory=dict)   # the posting's own names for its two lists ({"minimum": ..., "desirable": ...}), where it has them
     judge: Callable | None = None                  # the matcher's judge (`Agents.judge`); None for a bot without tools
     matcher_calls: int = 0
     matcher_found_line: bool = False               # some matcher answer rests on a CV line
     matcher_found_nothing: bool = False            # the matcher showed no line, or could not run: "the CV does not show it" needs no line
+
+
+def list_names(headings):
+    """One sentence that tells a model to call the posting's two lists by the posting's own headings. Empty when the posting has none."""
+    named = [(h, kind) for kind, h in (("asked of the candidate", (headings or {}).get("minimum")), ("desirable", (headings or {}).get("desirable"))) if h]
+    if not named:
+        return ""
+    parts = " and ".join(f"the list of what is {kind} is headed “{h}”" for h, kind in named)
+    return f"In this posting {parts}. Name a list by that heading, never as \"minimum requirements\" or \"nice to have\"."
 
 
 def _counts_text(counts):
@@ -124,7 +134,8 @@ def call_overall_check(deps, leave_out=(), treat_as_met=()):
         change = " and ".join(words) or "no change"
         lines = []
         if any(i["kind"] == "minimum" for i in deps.items):
-            lines.append(f"Minimum requirements now: {_counts_text(match.verdict_counts(deps.items))}. "
+            name = (deps.headings or {}).get("minimum") or "Minimum requirements"
+            lines.append(f"{name} now: {_counts_text(match.verdict_counts(deps.items))}. "
                          f"With {change}: {_counts_text(match.verdict_counts(changed))}.")
         now = overall_mod.LEVEL_LABELS.get((deps.overall or {}).get("level"))
         if deps.read_overall is None or deps.overall_calls >= MAX_OVERALL_CALLS or not now:
@@ -234,13 +245,16 @@ def check_answer(out, deps):
     return problems
 
 
-def report_text(items, overall=None, gap=None):
+def report_text(items, overall=None, gap=None, headings=None):
     from llm import overall as overall_mod   # not at the top: llm.overall imports this module
     lines = []
+    if list_names(headings):
+        lines.append(list_names(headings))
     if overall and overall.get("level") in overall_mod.LEVEL_LABELS:
         lines.append(f"Overall reading: {overall_mod.LEVEL_LABELS[overall['level']]}. {overall.get('summary', '')}".strip())
     if gap and gap[1]:
-        lines.append(f"{gap[1] - gap[0]} of {gap[1]} minimum requirements are met or partly met.")
+        what = f"items under “{headings['minimum']}”" if (headings or {}).get("minimum") else "minimum requirements"
+        lines.append(f"{gap[1] - gap[0]} of {gap[1]} {what} are met or partly met.")
     for n, it in enumerate(match.display_order(items), 1):
         v = match.effective_verdict(it)
         word = {"partial": "partly", "not_on_record": "not shown"}.get(v, v)   # the reader's words, not the stored key
@@ -284,21 +298,22 @@ def _history(turns):
 class ReportChat:
     """One chat on one report. `model` is injectable for tests."""
 
-    def __init__(self, entry, tracing, model, posting, items, cv_chunks, overall=None, gap=None):
+    def __init__(self, entry, tracing, model, posting, items, cv_chunks, overall=None, gap=None, headings=None):
         self.entry, self.tracing = entry, tracing
+        self.headings = headings or {}
         self.posting, self.items = posting, items
         self.cv_chunks = cv_chunks
         cited = {i["chunk_id"]: {"id": i["chunk_id"], "section": i["section"], "text": i["evidence"]}
                  for i in items if i.get("chunk_id") and i["evidence"]}
         self.chunks = {**{c["id"]: c for c in cv_chunks}, **cited}
-        self.report = report_text(items, overall, gap)
+        self.report = report_text(items, overall, gap, self.headings)
         context = "\n".join([posting, self.report, *[c["text"] for c in self.chunks.values()]])
-        self.deps = ChatDeps(chunks=self.chunks, context_text=context, items=items, overall=overall)
+        self.deps = ChatDeps(chunks=self.chunks, context_text=context, items=items, overall=overall, headings=self.headings)
         if entry.get("tools"):   # the matcher is the report's own judge, on the chat's own model
             from llm.agents import Agents   # not at the top: llm.agents imports llm.overall, which imports this module
             agents = Agents(entry, tracing, model=model)
             self.deps.judge = agents.judge_async
-            self.deps.read_overall = lambda changed: agents.overall(posting[:match.POSTING_LIMIT], changed, cv_chunks)
+            self.deps.read_overall = lambda changed: agents.overall(posting[:match.POSTING_LIMIT], changed, cv_chunks, self.headings)
         self.model = model
 
     def _agent(self, skeptic):

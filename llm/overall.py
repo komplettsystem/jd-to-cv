@@ -94,14 +94,15 @@ def check(out, chunk_ids, context_text):
     return problems
 
 
-def prompt(posting, items, chunks):
+def prompt(posting, items, chunks, headings=None):
     cv = "\n".join(f"{c['id']} | {c['section']} | {c['text']}" for c in chunks)
     report = "\n".join(f"- [{it['kind']}] {it['text']} -> {match.effective_verdict(it)}" for it in items)
-    return (f"<posting>\n{posting}\n</posting>\n\nPoint-by-point report (requirement -> verdict):\n{report}\n\n"
-            f"CV lines you may cite (id | section | text):\n{cv}")
+    names = chat.list_names(headings)
+    return (f"<posting>\n{posting}\n</posting>\n\n" + (names + "\n\n" if names else "")
+            + f"Point-by-point report (requirement -> verdict):\n{report}\n\nCV lines you may cite (id | section | text):\n{cv}")
 
 
-def read(make_agent, posting, items, chunks):
+def read(make_agent, posting, items, chunks, headings=None):
     """Run the agent and return the reading as a plain dict (what is stored), or raise when it cannot pass the checks.
     `make_agent(name, output_type, instructions)` is `Agents._agent`."""
     ids = {c["id"] for c in chunks}
@@ -115,7 +116,7 @@ def read(make_agent, posting, items, chunks):
             raise ModelRetry("; ".join(problems))
         return out
 
-    out = agent.run_sync(prompt(posting, items, chunks), usage_limits=LIMITS).output
+    out = agent.run_sync(prompt(posting, items, chunks, headings), usage_limits=LIMITS).output
     clean = lambda t: match.strip_ids(t.strip(), ids)     # the app's CV line numbers never appear in a sentence
     return {"level": out.level, "summary": clean(out.summary),
             "points": [{"kind": p.kind, "text": clean(p.text), "basis": p.basis,

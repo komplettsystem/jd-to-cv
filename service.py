@@ -389,7 +389,8 @@ class Service:
                     overall = None
                 rc = ReportChat(entry, self.tracing, self.model_factory(entry), run["posting_text"], items,
                                 self._chunks(run, public),
-                                overall=overall, gap=match.minimum_gap(items))
+                                overall=overall, gap=match.minimum_gap(items),
+                                headings={"minimum": run["min_heading"], "desirable": run["nice_heading"]})
                 with self.tracing.subject("match.chat", "chat_message", message_id, entry, public) as trace_id:
                     self.db.update_message(message_id, trace_id=trace_id)
                     out = rc.ask(question["content"], turns, skeptic=(msg["mode"] == "skeptic"))

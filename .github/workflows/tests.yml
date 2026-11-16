@@ -12,3 +12,28 @@ jobs:
           cache-dependency-path: requirements-dev.txt
       - run: pip install -r requirements-dev.txt
       - run: python -m pytest -q
+  deploy:
+    # Runs only after the tests pass and only for a push to main: that push is the owner's decision to deploy. The "production" environment limits it to main and can take a required reviewer.
+    needs: pytest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency:
+      group: deploy
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload the files and restart the app
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 600 /dev/null "$RUNNER_TEMP/key"
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$RUNNER_TEMP/key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$RUNNER_TEMP/known_hosts"
+          git archive --format=tar HEAD | ssh -i "$RUNNER_TEMP/key" -o IdentitiesOnly=yes -o UserKnownHostsFile="$RUNNER_TEMP/known_hosts" -o StrictHostKeyChecking=yes "root@$DEPLOY_HOST" "$GITHUB_SHA"
+      - name: Check that the site answers
+        env:
+          DEPLOY_URL: ${{ vars.DEPLOY_URL }}
+        run: curl -fsS --retry 12 --retry-delay 5 --retry-all-errors "$DEPLOY_URL" -o /dev/null
