@@ -100,3 +100,23 @@ def test_the_start_page_boxes_are_stacked_in_one_column():
     css = (Path(__file__).resolve().parent.parent / "static" / "style.css").read_text()
     hero = [line for line in css.splitlines() if ".hero-grid" in line and "grid-template-columns" in line]
     assert hero == []
+
+
+def test_a_failed_report_links_back_to_the_form_with_the_pdf_and_paste_options_open(tmp_path, monkeypatch):
+    """A career page whose job data held 991 characters of intro without requirements: the check was accepted, the model found nothing, the report failed.
+    The visitor then needs a way to the PDF upload, which the plain form hides."""
+    from webfixtures import public_check, token_of
+    app = make_app(tmp_path, monkeypatch)
+    b = Browser(app)
+    svc = app.extensions["svc"]
+    token = token_of(public_check(b))
+    run = svc.db.run_by_token(token)
+    rid = svc.db.add_result(run["id"], "baseline")
+    svc.db.set_status(rid, "failed", error="ValueError: model returned no requirements list")
+    page = b.get(f"/r/{token}").data.decode()
+    assert "This report could not be produced" in page and "model returned" not in page
+    assert 'href="/?upload=1"' in page
+    assert 'name="posting_file"' not in form_html(b.get("/").data.decode())
+    html = form_html(b.get("/?upload=1").data.decode())
+    assert html.index('name="posting_url"') < html.index('name="posting_file"') < html.index('name="posting_text"')
+    assert 'name="posting_file"' in form_html(b.get("/check-cv?upload=1").data.decode())

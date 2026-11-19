@@ -66,7 +66,7 @@ Report pages are private links. Please do not crawl them.
 
 @bp.get("/")
 def landing():
-    return _landing()
+    return _landing(fallback=request.args.get("upload") == "1")   # the link on a failed report: PDF upload and pasted text visible
 
 
 @bp.post("/check")
@@ -81,7 +81,8 @@ def check():
     try:
         posting = postings.posting_text(form, request.files, _visitor(), svc().limits()["posting_max_chars"])
         _, token = svc().create_public_check(posting, form.get("title", "") or getattr(posting, "job_title", ""),
-                                             form.get("company", "") or getattr(posting, "job_company", ""), _visitor())
+                                             form.get("company", "") or getattr(posting, "job_company", ""), _visitor(),
+                                             getattr(posting, "link", ""))
     except PostingError as e:   # the form now offers the PDF upload, and under it the pasted text
         return _landing(str(e), 429 if isinstance(e, LimitError) else 400, form, fallback=True)
     except LimitError as e:

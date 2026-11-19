@@ -30,7 +30,7 @@ def _page(error=None, status=200, form=None, fallback=False):
 
 @bp.get("/check-cv")
 def form():
-    return _page()
+    return _page(fallback=request.args.get("upload") == "1")   # the link on a failed report: PDF upload and pasted text visible
 
 
 @bp.post("/check-cv")
@@ -58,7 +58,8 @@ def submit():
         posting = postings.posting_text(f, request.files, _visitor(), svc().limits()["posting_max_chars"])
         _, token = svc().create_upload_check(posting, cv, f.get("title", "") or getattr(posting, "job_title", ""),
                                              f.get("company", "") or getattr(posting, "job_company", ""),
-                                             f.get("candidate_name", ""), f.get("retention", ""), _visitor(), True)
+                                             f.get("candidate_name", ""), f.get("retention", ""), _visitor(), True,
+                                             getattr(posting, "link", ""))
     except PostingError as e:   # the form now offers the PDF upload, and under it the pasted text
         return _page(str(e), 429 if isinstance(e, LimitError) else 400, f, fallback=True)
     except LimitError as e:

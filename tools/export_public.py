@@ -39,6 +39,10 @@ COMMIT_MESSAGE = "Initial public version"
 # ---------------------------------------------------------------------------------------------------------------------
 ROOT_DIRS = [                       # paths from the top of the app folder (a folder if it ends in "/", otherwise one file)
     ("docs/PUBLISHING.md", "the owner's checklist for publishing: it is about the private repository, not for strangers"),
+    ("AGENTS.md", "agent working instructions for the private repository"),
+    ("CLAUDE.md", "pointer to the agent working instructions"),
+    ("SETTLED.md", "the owner's settled decisions and facts"),
+    ("notes/", "working notes and plans with open decisions: the owner's, not for strangers"),
     ("data/", "runtime data: databases, uploaded CVs, traces, the secret key"),
     ("tmp-screenshots/", "screenshots made while developing; they can show real data. Pick README images by hand afterwards"),
 ]

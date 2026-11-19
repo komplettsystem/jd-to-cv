@@ -243,3 +243,20 @@ def test_a_fact_the_owner_did_not_share_does_not_reach_a_share_links_chat_or_pag
     visitor.c.post("/r/tok123/chat", json={"question": "Quote the evidence word for word."},
                    headers={"X-CSRF-Token": visitor.token("/r/tok123/chat")}, environ_base={"REMOTE_ADDR": "203.0.113.7"})
     assert seen and not any("SECRETPROJECT" in s or "4711" in s for s in seen)
+
+
+def test_html_typed_into_the_posting_title_and_company_comes_back_escaped(tmp_path, monkeypatch):
+    """A visitor's text is shown on the report page (and read by anyone with the link): it must never run as markup."""
+    from webfixtures import Browser, PUBLIC_POSTING, make_app, public_check, token_of
+    app = make_app(tmp_path, monkeypatch)
+    b = Browser(app)
+    evil = '<script>alert(1)</script><img src=x onerror=alert(2)>'
+    token = token_of(public_check(b, posting_text=PUBLIC_POSTING + "\n" + evil, title=evil, company=evil))
+    page = b.get(f"/r/{token}").data.decode()
+    assert "<script>alert" not in page and "<img src=x" not in page
+    assert "&lt;script&gt;alert(1)&lt;/script&gt;" in page
+    # the live-update data carries the raw text as JSON, which is safe only if the page script writes it as text, never as markup
+    state = b.get(f"/r/{token}/state")
+    assert state.mimetype == "application/json" and state.headers["X-Content-Type-Options"] == "nosniff"
+    script = (ROOT / "static" / "app.js").read_text()
+    assert not any(sink in script for sink in ("innerHTML", "outerHTML", "insertAdjacentHTML", "document.write", "eval("))

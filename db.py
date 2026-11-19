@@ -259,26 +259,26 @@ class DB:
         self.run("UPDATE runs SET min_heading = COALESCE(NULLIF(min_heading, ''), ?), nice_heading = COALESCE(NULLIF(nice_heading, ''), ?) WHERE id=?",
                  ((plain(headings.get("minimum")) or "")[:100], (plain(headings.get("desirable")) or "")[:100], run_id))
 
-    def create_public_run(self, title, company, posting_text, visitor, expires):
+    def create_public_run(self, title, company, posting_text, visitor, expires, source_url=""):
         token = secrets.token_urlsafe(16)
         run_id = self.run(
             "INSERT INTO runs (created, title, company, posting_text, source, visitor, share_token, share_show_cv, "
-            "share_chat, share_letter, expires) VALUES (?,?,?,?, 'public', ?, ?, 1, 1, 1, ?)",
-            (now(), plain(title), plain(company), posting_text, visitor, token, expires))
+            "share_chat, share_letter, expires, source_url) VALUES (?,?,?,?, 'public', ?, ?, 1, 1, 1, ?, ?)",
+            (now(), plain(title), plain(company), posting_text, visitor, token, expires, source_url))
         self.run("INSERT INTO check_log (visitor, created, door) VALUES (?, ?, 'recruiter')", (visitor, now()))
         return run_id, token
 
     def create_upload_run(self, title, company, posting_text, visitor, expires, *, candidate_name, cv_text, retention,
-                          consent_version):
+                          consent_version, source_url=""):
         """A report on a CV the visitor uploaded. It is a public run (same caps, same expiry and delete rules) that
         carries its own CV and the record of the consent."""
         token = secrets.token_urlsafe(16)
         run_id = self.run(
             "INSERT INTO runs (created, title, company, posting_text, source, visitor, share_token, share_show_cv, "
-            "share_chat, share_letter, expires, candidate_name, cv_text, retention, consent_at, consent_version) "
-            "VALUES (?,?,?,?, 'public', ?, ?, 1, 1, 1, ?, ?, ?, ?, ?, ?)",
+            "share_chat, share_letter, expires, candidate_name, cv_text, retention, consent_at, consent_version, source_url) "
+            "VALUES (?,?,?,?, 'public', ?, ?, 1, 1, 1, ?, ?, ?, ?, ?, ?, ?)",
             (now(), plain(title), plain(company), posting_text, visitor, token, expires, candidate_name, cv_text, retention, now(),
-             consent_version))
+             consent_version, source_url))
         self.run("INSERT INTO check_log (visitor, created, door) VALUES (?, ?, 'seeker')", (visitor, now()))
         self.log_consent(consent_version, token)
         return run_id, token

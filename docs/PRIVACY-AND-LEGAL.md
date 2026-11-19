@@ -17,7 +17,7 @@ This describes what the app does about personal data and what is left to whoever
 - Reports are reachable only by their long random link. The operator can read everything, including traces with full prompts.
 - The chat is limited by code to the posting, the CV and the report, and tells the user it is an AI.
 - The spending caps and the per-visitor daily limit read from two small tables that hold no report content: `spend_ledger` (amount and time of each paid call, one year) and `check_log` (salted address hash and time of each check, two days). Deleting a report or letting it expire therefore cannot reduce the spend the caps see.
-- A visitor may give a link to the posting instead of pasting it. The server reads that page once (usual web ports only, a short total time, a size cap, a few at a time, a per-visitor limit) and keeps the text, not the link. The privacy page says so.
+- A visitor may give a link to the posting instead of pasting it. The server reads that page once (usual web ports only, a short total time, a size cap, a few at a time, a per-visitor limit) and keeps the text and the address of the page without its query or fragment (tracking codes and tokens are dropped), shown in the report as a link to the posting and deleted with the report. The privacy page and the form say so. Changed on 19 Nov 2026 at the owner's request; before that the link was not stored.
 - The app does not make decisions about anyone and does not send anything on anyone's behalf.
 
 ## What you have to do

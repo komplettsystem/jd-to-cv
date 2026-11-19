@@ -7,7 +7,7 @@
 
 {% macro application_fields() %}
   <div class="fields">
-    <div class="field f-5"><span class="field-label">Posting</span><p class="field-value" data-live-posting>{{ run.title or 'Untitled posting' }}</p><p class="field-sub" data-live-company {% if not run.company %}hidden{% endif %}>{{ run.company }}</p></div>
+    <div class="field f-5"><span class="field-label">Posting</span><p class="field-value" data-live-posting>{{ run.title or 'Untitled posting' }}</p><p class="field-sub" data-live-company {% if not run.company %}hidden{% endif %}>{{ run.company }}</p>{% if run.source_url and not admin %}<p class="field-sub"><a href="{{ run.source_url }}" target="_blank" rel="noopener noreferrer nofollow">Open the posting at {{ run.source_url.split('/')[2] }}</a></p>{% endif %}</div>
     <div class="field f-3 f-half"><span class="field-label">Checked against</span><p class="field-value">{% if not admin and not run.cv_text %}<a href="{{ url_for('public.cv_pdf', name=cv_pdf_stem) }}" target="_blank" rel="noopener">{{ owner_name }}</a>{% else %}{{ owner_name }}{% endif %}</p></div>
     <div class="field f-2 f-half"><span class="field-label">Received</span><p class="field-value">{{ run.created|day }}</p></div>
     <div class="field f-2"><span class="field-label">{{ 'Kept until' if run.source == 'public' and run.expires else 'Reference' }}</span><p class="field-value">{% if run.source == 'public' and run.retention == 'session' %}About {{ session_hours }} hours after your last action{% elif run.source == 'public' and run.expires %}{{ run.expires|day }}{% else %}{{ (run.share_token or '')[:6]|upper if not admin else 'No. ' ~ run.id }}{% endif %}</p></div>
@@ -151,7 +151,8 @@
   <div class="ribbon ribbon-pink result-head"><h2>Posting against the CV</h2>{% if r.status != 'done' %}{{ ui.status(r.status) }}{% endif %}</div>
   {% if loop.first %}{{ application_fields() }}{% endif %}
 {% endif %}
-  {% if r.status == 'failed' %}<div class="form-body"><p class="notice notice-error" role="alert">{% if admin %}{{ r.error }}{% else %}This report could not be produced. Check the posting again from the start page, or paste a shorter text.{% endif %}</p></div>{% endif %}
+  {% if r.status == 'failed' %}<div class="form-body"><p class="notice notice-error" role="alert">{% if admin %}{{ r.error }}{% else %}This report could not be produced. The page may not have given us the whole posting.{% endif %}</p>
+    {% if not admin %}<p class="form-note"><a href="{{ url_for('upload.form' if run.cv_text else 'public.landing', upload=1) }}">Give the posting as a PDF or paste its text instead</a></p>{% endif %}</div>{% endif %}
   {% if r.status in ('queued', 'running') %}<div class="form-body" role="status">{{ ui.working('Reading the posting and checking each requirement against the CV. This usually takes under a minute, and the page updates by itself.') }}</div>{% endif %}
   {% if r.status == 'done' %}
     {{ result_fields(r) }}

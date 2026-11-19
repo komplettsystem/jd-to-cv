@@ -42,6 +42,45 @@ def test_html_entities_in_the_job_data_title_and_company_are_decoded():
     assert text.job_company == "Salesforce, Inc. & Partners" and "&amp;" not in text.splitlines()[0] + text.splitlines()[1]
 
 
+NAV = "<nav>" + "".join(f"<li>Menu entry {i}</li>" for i in range(300)) + "</nav>"
+TEASER = {**JOB, "description": "<p>" + "Secure every identity, from AI to human. We are looking for builders and owners. " * 6 + "</p>"}
+FULL = ("<h2>Responsibilities</h2><p>Define and execute the AI product strategy for the agent portfolio and its roadmap.</p>"
+        "<h2>Requirements</h2><ul><li>Five to seven years of product management experience</li>"
+        "<li>Strong understanding of OAuth, OIDC and SAML</li></ul>" + "<p>The role works with engineering, design and security every day.</p>" * 40)
+
+
+def test_job_data_that_is_only_a_teaser_gives_way_to_the_article_with_the_requirements():
+    """A career site's job data held only the intro (991 characters); Responsibilities and Requirements were only in the page's <article>."""
+    text = ingest.posting_text_from_html(page(TEASER, f"{NAV}<article>{FULL}</article><footer>Cookie preferences</footer>"))
+    assert "Requirements" in text and "OAuth" in text
+    assert "Menu entry" not in text and "Cookie preferences" not in text
+    assert text.job_title == "Senior Product Manager" and text.job_company == "Acme Search"
+
+
+def test_without_an_article_the_main_part_is_used_and_the_menu_stays_out():
+    text = ingest.posting_text_from_html(page(TEASER, f"{NAV}<main>{FULL}</main>"))
+    assert "OAuth" in text and "Menu entry" not in text
+
+
+def test_job_data_about_as_long_as_the_page_is_kept():
+    text = ingest.posting_text_from_html(page(JOB, f"{NAV}<article><p>{BODY}</p><p>Share this job on social media.</p></article>"))
+    assert "Ten years in product" in text and "Share this job" not in text and "Menu entry" not in text
+
+
+@pytest.mark.parametrize("hostile", ["<article>" * 45_000, "<main>" * 70_000, '<script type="application/ld+json">' * 12_000,
+                                      '<script type="application/ld+json">' + "x" * 400_000])
+def test_a_page_built_to_slow_the_reading_down_is_read_in_a_blink(hostile):
+    """A pattern search over an unclosed element is quadratic: 2 MB of '<article>' took half an hour. The reader parses in one pass."""
+    import time
+    teaser = '<script type="application/ld+json">' + json.dumps(TEASER) + "</script>"
+    start = time.monotonic()
+    try:
+        ingest.posting_text_from_html(teaser + hostile)
+    except ValueError:
+        pass
+    assert time.monotonic() - start < 3
+
+
 def test_page_text_is_used_when_there_is_no_posting_data_or_it_is_broken():
     body = f"<h1>Senior PM</h1><p>{BODY}</p>"
     assert "Senior PM" in ingest.posting_text_from_html(page(None, body))
@@ -191,9 +230,36 @@ def test_links_are_rate_limited_per_visitor(tmp_path, monkeypatch):
     assert codes[:6] == [400] * 6 and codes[6] == 429
 
 
-def test_the_link_itself_is_not_kept(tmp_path, monkeypatch):
+def test_the_report_keeps_the_address_without_its_query_and_shows_it_as_a_link(tmp_path, monkeypatch):
+    """Changed 19 Nov 2026 at the owner's request: the posting link is kept so readers can open it; tokens and tracking codes are not."""
     app = make_app(tmp_path, monkeypatch)
-    monkeypatch.setattr(ingest, "fetch_posting", lambda url, limit: PUBLIC_POSTING)
-    posted(app, "/check", "203.0.113.26", posting_url="https://secret-board.example.test/jobs/4711?token=abc123")
+    monkeypatch.setattr(ingest, "fetch_posting", lambda url, limit: _with_link(url))
+    r = posted(app, "/check", "203.0.113.26", posting_url="https://user:pw@secret-board.example.test/jobs/4711?token=abc123#apply")
     dump = "\n".join(sqlite3.connect(app.extensions["svc"].settings.db_path).iterdump())
-    assert "secret-board" not in dump and "abc123" not in dump
+    assert "https://secret-board.example.test/jobs/4711" in dump
+    assert "abc123" not in dump and "user:pw" not in dump and "#apply" not in dump
+    page = Browser(app, addr="203.0.113.27").get(r.headers["Location"]).data.decode()
+    assert 'href="https://secret-board.example.test/jobs/4711"' in page and "Open the posting at secret-board.example.test" in page
+
+
+def _with_link(url):
+    text = ingest.FetchedText(PUBLIC_POSTING)
+    text.link = ingest.clean_link(url)
+    return text
+
+
+def test_pasted_text_has_no_posting_link(tmp_path, monkeypatch):
+    app = make_app(tmp_path, monkeypatch)
+    r = posted(app, "/check", "203.0.113.28", posting_text=PUBLIC_POSTING)
+    page = Browser(app, addr="203.0.113.29").get(r.headers["Location"]).data.decode()
+    assert "Open the posting at" not in page
+
+
+@pytest.mark.parametrize("given, kept", [
+    ("https://jobs.example.test/pm?utm=1#x", "https://jobs.example.test/pm"),
+    ("HTTP://Jobs.Example.test:80/a/b", "http://jobs.example.test:80/a/b"),
+    ("https://u:p@jobs.example.test/pm", "https://jobs.example.test/pm"),
+    ("javascript:alert(1)", ""), ("ftp://jobs.example.test/pm", ""), ("https://", ""), ("https://x.test/" + "a" * 400, ""),
+    ("https://x.test/a b", "")])
+def test_clean_link(given, kept):
+    assert ingest.clean_link(given) == kept

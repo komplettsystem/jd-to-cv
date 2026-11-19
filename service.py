@@ -474,18 +474,18 @@ class Service:
         self.check_budget(shared=True, door=door)
         return posting
 
-    def create_public_check(self, posting, title, company, visitor):
+    def create_public_check(self, posting, title, company, visitor, link=""):
         lim = self.limits()
         posting = self._admit(posting, visitor, "recruiter")
         expires = _utc(datetime.now(timezone.utc) + timedelta(days=lim["retention_days"]))
-        run_id, token = self.db.create_public_run(title.strip()[:120], company.strip()[:120], posting, visitor, expires)
+        run_id, token = self.db.create_public_run(title.strip()[:120], company.strip()[:120], posting, visitor, expires, link)
         self.submit(self.run_fit, self.db.add_result(run_id, self.public_model()))
         if self.db.get_json("terms", None):   # the posting against the owner's own terms, for the owner's eyes only (never on a public page);
             # not when the terms are still the examples: a score against them would mean nothing
             self.submit(self.run_terms, self.db.add_result(run_id, self.public_model(), kind="terms"))
         return run_id, token
 
-    def create_upload_check(self, posting, cv, title, company, candidate_name, retention, visitor, consent):
+    def create_upload_check(self, posting, cv, title, company, candidate_name, retention, visitor, consent, link=""):
         """A report on a CV the visitor supplies. Nothing is read or stored unless the consent box was ticked."""
         if not consent:
             raise ValueError("Tick the box to agree before uploading a CV.")
@@ -504,7 +504,7 @@ class Service:
         run_id, token = self.db.create_upload_run(
             title.strip()[:120], company.strip()[:120], posting, visitor, _utc(datetime.now(timezone.utc) + keep),
             candidate_name=cvfile.redact_contacts(candidate_name.strip()[:cvfile.MAX_NAME])[:80], cv_text=cv, retention=retention,
-            consent_version=CONSENT_VERSION)
+            consent_version=CONSENT_VERSION, source_url=link)
         self.submit(self.run_fit, self.db.add_result(run_id, self.public_model()))
         return run_id, token
 

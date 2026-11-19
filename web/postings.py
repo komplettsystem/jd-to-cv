@@ -20,7 +20,7 @@ def _sentences(message):
 
 
 def posting_text(form, files, visitor, limit_chars):
-    """Pasted text first, then an uploaded file, then a link. A link is read once and is not kept; an uploaded file is
+    """Pasted text first, then an uploaded file, then a link. A link is read once; the report keeps its address without the query (ingest.clean_link); an uploaded file is
     read for its text and is not kept. Raises PostingError (also LimitError for the link limit) with a message for the visitor."""
     text = form.get("posting_text", "")
     if text.strip():

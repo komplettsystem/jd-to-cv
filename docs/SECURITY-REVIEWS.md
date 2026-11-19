@@ -35,5 +35,6 @@ The handover note records eight findings; the commit lists the fixes below, and 
 ## Not done
 
 - A dependency lock file with hashes, and pinned image digests.
+- Dependency versions are still not pinned (`requirements.txt` gives minimums). Since 19 November 2026 the `audit` job in `.github/workflows/tests.yml` runs `pip-audit` on `requirements.txt` for every push and every Monday and reports known vulnerabilities; it does not block a deploy. It sees published advisories only, not unreported flaws.
 - A penetration test or any review by a person.
 - A re-review after later changes (the chat's matcher agent, the read-only demo mode, the model catalog). Those have tests but no separate review.

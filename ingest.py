@@ -10,7 +10,7 @@ import time
 import urllib.error
 import urllib.request
 from html.parser import HTMLParser
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlsplit, urlunsplit
 
 BLOCK = {"p", "br", "li", "ul", "ol", "div", "h1", "h2", "h3", "h4", "h5", "h6", "tr", "section", "article"}
 MIN_URL_TEXT = 500
@@ -21,12 +21,22 @@ _FETCH_SLOTS = threading.BoundedSemaphore(FETCH_SLOTS_N)
 
 
 class _Text(HTMLParser):
-    def __init__(self):
+    """Visible text of a page. With `only` ("article", "main"), just the text inside the first such element: one pass, so a page
+    built to make a pattern search slow cannot hold the server (a regular expression over a 2 MB page can take many minutes)."""
+    def __init__(self, only=None):
         super().__init__()
         self.parts = []
         self.skip = 0
+        self.only, self.depth, self.done = only, 0, False
+
+    def _on(self):
+        return self.only is None or self.depth > 0
 
     def handle_starttag(self, tag, attrs):
+        if self.only and tag == self.only and not self.done:
+            self.depth += 1
+        if not self._on():
+            return
         if tag in ("script", "style", "noscript"):
             self.skip += 1
         elif tag == "li":
@@ -35,18 +45,22 @@ class _Text(HTMLParser):
             self.parts.append("\n")
 
     def handle_endtag(self, tag):
-        if tag in ("script", "style", "noscript"):
-            self.skip = max(0, self.skip - 1)
-        elif tag in BLOCK:
-            self.parts.append("\n")
+        if self._on():
+            if tag in ("script", "style", "noscript"):
+                self.skip = max(0, self.skip - 1)
+            elif tag in BLOCK:
+                self.parts.append("\n")
+        if self.only and tag == self.only and self.depth > 0:
+            self.depth -= 1
+            self.done = self.done or self.depth == 0
 
     def handle_data(self, data):
-        if not self.skip:
+        if not self.skip and self._on():
             self.parts.append(data)
 
 
-def html_to_text(html):
-    p = _Text()
+def html_to_text(html, only=None):
+    p = _Text(only)
     p.feed(html)
     lines = [" ".join(line.split()) for line in "".join(p.parts).splitlines()]
     return "\n".join(line for line in lines if line)
@@ -136,7 +150,30 @@ def _download(url, public=False):
         return raw.decode("utf-8", errors="replace"), ctype
 
 
-_LD_JSON = re.compile(r'<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.*?)</script>', re.I | re.S)
+class _LdJson(HTMLParser):
+    """The contents of every <script type="application/ld+json"> that is closed. One pass, like _Text."""
+    def __init__(self):
+        super().__init__()
+        self.blocks, self._open = [], None
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "script" and any(k == "type" and (v or "").strip().lower() == "application/ld+json" for k, v in attrs):
+            self._open = []
+
+    def handle_data(self, data):
+        if self._open is not None:
+            self._open.append(data)
+
+    def handle_endtag(self, tag):
+        if tag == "script" and self._open is not None:
+            self.blocks.append("".join(self._open))
+            self._open = None
+
+
+def _ld_json_blocks(html):
+    p = _LdJson()
+    p.feed(html)
+    return p.blocks
 
 
 def _job_postings(node):
@@ -186,10 +223,29 @@ def _posting_from_job(job):
     return "\n\n".join(p for p in parts if p)
 
 
+def clean_link(url):
+    """The address a report keeps so its readers can open the posting: scheme, host and path. Anything after a ? or # (tracking
+    codes, referral tokens, session ids) and any user name or password in the address are dropped. "" when it is not a plain web address."""
+    try:
+        parts = urlsplit((url or "").strip())
+        host = parts.hostname
+    except ValueError:
+        return ""
+    if parts.scheme.lower() not in ("http", "https") or not host:
+        return ""
+    netloc = host if ":" not in host else f"[{host}]"
+    if parts.port:
+        netloc += f":{parts.port}"
+    link = urlunsplit((parts.scheme.lower(), netloc, parts.path, "", ""))
+    return link if len(link) <= 300 and not any(c.isspace() or ord(c) < 32 for c in link) else ""
+
+
 class FetchedText(str):
-    """The text of a posting read from a link, with the role title and company when the page's job data gives them."""
+    """The text of a posting read from a link, with the role title and company when the page's job data gives them, and the
+    link without its query (`link`), set by fetch_posting."""
     job_title = ""      # not "title": a str already has a title() method
     job_company = ""
+    link = ""
 
     def __new__(cls, text, title="", company=""):
         obj = super().__new__(cls, text)
@@ -199,7 +255,7 @@ class FetchedText(str):
 
 def _find_job(html):
     """(text, title, company) from the page's structured job posting data, or None when there is none worth using."""
-    for block in _LD_JSON.findall(html):
+    for block in _ld_json_blocks(html):
         try:
             data = json.loads(block.strip())
         except ValueError:
@@ -211,12 +267,27 @@ def _find_job(html):
     return None
 
 
+THIN_JOB_DATA = 3       # job data this many times shorter than the page's own text is only a teaser (seen on a real career site: the intro only, no requirements)
+
+
+def _fuller_page_text(html, job_data_len):
+    """The page's own text, when the job data is only a teaser of it. The first of the page's <article> or <main> (the whole body
+    only when it has neither) whose text is at least THIN_JOB_DATA times as long as the job data, so that the menu and the
+    footer stay out. None when the job data is about as long as the page, which is the usual case."""
+    texts = [t for t in (html_to_text(html, tag) for tag in ("article", "main")) if t] or [html_to_text(html)]  # the whole body only without either
+    for text in texts:
+        if len(text) >= THIN_JOB_DATA * job_data_len:
+            return text
+    return None
+
+
 def posting_text_from_html(html):
     """The posting text of a page: the structured job posting data many career sites include (it is there even when the
     page itself fills in its text with JavaScript), else the visible text. Raises when there is not enough text."""
     found = _find_job(html)
     if found:
-        return FetchedText(found[0], found[1], found[2])
+        fuller = _fuller_page_text(html, len(found[0]))
+        return FetchedText(fuller or found[0], found[1], found[2])
     text = html_to_text(html)
     if len(text) < MIN_URL_TEXT:
         raise ValueError(
@@ -263,6 +334,7 @@ def fetch_posting(url, limit_chars):
     if len(text) > limit_chars:
         raise ValueError(f"the page is longer than {limit_chars:,} characters; upload a PDF of just the requirements part "
                          "instead")
+    text.link = clean_link(url)
     return text
 
 
